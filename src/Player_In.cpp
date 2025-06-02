@@ -2,21 +2,19 @@
 
 int main()
 {
-    // Crear una ventana
-    sf::RenderWindow window(sf::VideoMode(800, 600), "SFML Image");
+    // Crear la ventana
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Space 0006");
 
     // Cargar la imagen desde un archivo
     sf::Texture texture;
-    if (!texture.loadFromFile("./assets/images/Fondo negro.png"))
+    if (!texture.loadFromFile("assets/images/space_Player.png"))
     {
-        // Manejar el error si no se puede cargar la imagen
+        // Manejo de error si no se puede cargar la imagen
         return -1;
     }
-
-    // Crear un sprite y asignarle la textura
     sf::Sprite sprite(texture);
+    sprite.setPosition(400, 300);
 
-    // Bucle principal
     while (window.isOpen())
     {
         // Procesar eventos
@@ -25,7 +23,6 @@ int main()
         {
             if (event.type == sf::Event::Closed)
             {
-                // Cerrar la ventana si se recibe el evento de cerrar
                 window.close();
             }
         }
