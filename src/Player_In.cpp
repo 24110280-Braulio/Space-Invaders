@@ -14,7 +14,7 @@ int main()
     }
     sf::Sprite sprite(texture);
     //sprite.setScale(4.f, 4.f); Aumenta el tamaño del jugador (Opción Descartada)
-    sprite.setPosition(400, 700);
+    sprite.setPosition(400, 700); //Posicion Inicial
 
     while (window.isOpen())
     {
