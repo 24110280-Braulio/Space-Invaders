@@ -2,7 +2,7 @@
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Barreras");
+    sf::RenderWindow window(sf::VideoMode(800, 800), "Barreras");
 
     sf::Texture barreraTexture;
     if (!barreraTexture.loadFromFile("assets/images/Barrera.png"))
@@ -15,7 +15,7 @@ int main()
     sf::Sprite barreras[numBarreras];
     for (int i = 0; i < numBarreras; ++i) {
         barreras[i].setTexture(barreraTexture);
-        barreras[i].setPosition(espacio + i * (barreraWidth + espacio), 500);
+        barreras[i].setPosition(espacio + i * (barreraWidth + espacio), 550);
     }
 
     while (window.isOpen())

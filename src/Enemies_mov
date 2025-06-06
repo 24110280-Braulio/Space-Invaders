@@ -1,8 +1,0 @@
-#include <SFML/Graphics.hpp>
-#include <vector>
-#include <string>
-#include <Animacion.hpp>
-#include <Enemy.hpp>
-#include <EnemyManager.hpp>
-#include <Game.hpp>
-

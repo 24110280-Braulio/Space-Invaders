@@ -15,7 +15,7 @@ int main()
 
     // Crear un sprite y asignarle la textura
     sf::Sprite sprite(texture);
-    sprite.setPosition(400, 400);
+    sprite.setPosition(0, 0); // Posición inicial del sprite
 
     sf::Clock clock;
     float frameTime = 0.1f; // Tiempo entre cada frame en segundos
@@ -23,6 +23,10 @@ int main()
     int numFrames = 2; // Número total de frames en la animación
     int frameWidth = 44;
     int frameHeight = 32;
+
+    // Variables para el movimiento
+    float velocity = 500.0f; // pixeles por segundo
+    float direction = 1.0f;  // 1: derecha, -1: izquierda
 
     while (window.isOpen())
     {
@@ -36,14 +40,42 @@ int main()
             }
         }
 
+        // Movimiento automático
+        float deltaTime = clock.restart().asSeconds();
+        sf::Vector2f pos = sprite.getPosition();
+        pos.x += velocity * direction * deltaTime;
+
+        // Rebotar en los bordes
+        if (pos.x < 0)
+        {
+            pos.x = 0;
+            pos.y += 32; // Bajar 32 píxeles en Y al tocar el borde izquierdo
+            direction = 1.0f;
+        }
+        else if (pos.x > 800 - frameWidth)
+        {
+            pos.x = 800 - frameWidth;
+            pos.y += 32; // Bajar 32 píxeles en Y al tocar el borde derecho
+            direction = -1.0f;
+        }
+
+        // Aumentar velocidad si pasa Y=550
+        if (pos.y > 550)
+        {
+            velocity = 700.0f; // Nueva velocidad (ajusta el valor si lo deseas)
+        }
+
+        sprite.setPosition(pos);
+
         // Actualizar la animación
-        if (clock.getElapsedTime().asSeconds() >= frameTime)
+        static float animTime = 0.0f;
+        animTime += deltaTime;
+        if (animTime >= frameTime)
         {
             currentFrame = (currentFrame + 1) % numFrames;
-            // Frame 0: (0,0,44,32), Frame 1: (52,0,44,32)
             int x = (currentFrame == 0) ? 0 : (frameWidth + 8);
             sprite.setTextureRect(sf::IntRect(x, 0, frameWidth, frameHeight));
-            clock.restart();
+            animTime = 0.0f;
         }
 
         window.clear();
