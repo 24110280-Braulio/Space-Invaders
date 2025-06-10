@@ -35,7 +35,8 @@ int main()
     float peaVelocity = 500.0f;
     float peaDirection = 1.0f;
     sf::Clock peaClock;
-    bool peaAlive = true; // NUEVO: Pea está vivo
+    // bool peaAlive = true; // NUEVO: Pea está vivo
+    int peaHP = 200; // NUEVO: Puntos de vida de Pea
 
     while (window.isOpen())
     {
@@ -90,18 +91,19 @@ int main()
         }), bullets.end());
 
         // --- Colisión entre balas y Pea ---
-        if (peaAlive) {
+        if (peaHP > 0) {
             auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
-                return bullet.getGlobalBounds().intersects(pea.getGlobalBounds());
+                if (bullet.getGlobalBounds().intersects(pea.getGlobalBounds())) {
+                    peaHP -= 20; // Cada disparo causa 20 puntos de daño
+                    return true; // Eliminar la bala
+                }
+                return false;
             });
-            if (it != bullets.end()) {
-                peaAlive = false; // Pea muere si hay colisión
-                bullets.erase(it, bullets.end());
-            }
+            bullets.erase(it, bullets.end());
         }
 
         // --- Movimiento automático y animación de Pea ---
-        if (peaAlive) {
+        if (peaHP > 0) {
             float peaDeltaTime = peaClock.restart().asSeconds();
             sf::Vector2f peaPos = pea.getPosition();
             peaPos.x += peaVelocity * peaDirection * peaDeltaTime;
@@ -131,7 +133,7 @@ int main()
         window.draw(player);
         for (const auto& bullet : bullets)
             window.draw(bullet);
-        if (peaAlive)
+        if (peaHP > 0)
             window.draw(pea);
         window.display();
     }
