@@ -34,6 +34,7 @@ int main()
         sf::Vector2f pos = sprite.getPosition();
         sf::Vector2u size = texture.getSize();
         // Limites de la ventana
+        // 800 x 250
         float minX = 0;
         float minY = 550;
         float maxX = 800 - size.x;
