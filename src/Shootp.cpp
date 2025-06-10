@@ -15,7 +15,7 @@ int main()
 
     // --- Shootout (Bala) ---
     sf::Texture bulletTexture;
-    if (!bulletTexture.loadFromFile("assets/images/Shootout.png"))
+    if (!bulletTexture.loadFromFile("assets/images/DisparoNave.png"))
         return -1;
     std::vector<sf::Sprite> bullets;
     float bulletSpeed = 1.5f;

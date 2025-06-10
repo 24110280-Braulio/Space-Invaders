@@ -6,6 +6,15 @@ int main()
 {
     sf::RenderWindow window(sf::VideoMode(800, 800), "Tabletop");
 
+    // --- Fondo Espacial ---
+    sf::Texture fondoTexture;
+    if (!fondoTexture.loadFromFile("assets/images/Fondo Espacial.png"))
+        return -1;
+    sf::Sprite fondo(fondoTexture);
+    fondo.setPosition(0, 550);
+    // Ajustar tamaño si es necesario
+    fondo.setScale(800.0f / fondoTexture.getSize().x, 250.0f / fondoTexture.getSize().y);
+
     // --- Barreras ---
     sf::Texture barreraTexture;
     if (!barreraTexture.loadFromFile("assets/images/Barrera.png"))
@@ -28,7 +37,7 @@ int main()
 
     // --- Shootout (Bala) ---
     sf::Texture bulletTexture;
-    if (!bulletTexture.loadFromFile("assets/images/Shootout.png"))
+    if (!bulletTexture.loadFromFile("assets/images/DisparoNave.png"))
         return -1;
     std::vector<sf::Sprite> bullets;
     float bulletSpeed = 1.5f;
@@ -297,6 +306,8 @@ int main()
         }
 
         window.clear();
+        // Dibuja el fondo espacial en la parte inferior
+        window.draw(fondo);
         for (int i = 0; i < numBarreras; ++i)
             window.draw(barreras[i]);
         window.draw(player);
