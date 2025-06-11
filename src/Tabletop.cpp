@@ -4,6 +4,8 @@
 #include "../include/EnemyMovementManager.hpp"
 #include "../include/EnemyHealthManager.hpp"
 #include "../include/Enemy.hpp"
+#include "../include/Barrier.hpp"
+#include "../include/EnemyShooter.hpp"
 
 int main()
 {
@@ -22,13 +24,16 @@ int main()
     sf::Texture barreraTexture;
     if (!barreraTexture.loadFromFile("assets/images/Barrera.png"))
         return -1;
+    sf::Texture lowBarreraTexture;
+    if (!lowBarreraTexture.loadFromFile("assets/images/Lowbarrier.png"))
+        return -1;
     const int barreraWidth = 64;
     const int numBarreras = 4;
     const int espacio = (800 - (numBarreras * barreraWidth)) / (numBarreras + 1);
-    sf::Sprite barreras[numBarreras];
+    std::vector<Barrier> barreras;
     for (int i = 0; i < numBarreras; ++i) {
-        barreras[i].setTexture(barreraTexture);
-        barreras[i].setPosition(espacio + i * (barreraWidth + espacio), 490);
+        sf::Vector2f pos(espacio + i * (barreraWidth + espacio), 490);
+        barreras.emplace_back(barreraTexture, lowBarreraTexture, pos, 5000); // Vida aumentada a 120
     }
 
     // --- Player ---
@@ -66,9 +71,9 @@ int main()
         peaPositions.push_back(sf::Vector2f(60.0f + i * 90.0f, 60));
     }
     sf::Clock peaClock;
-    std::vector<int> peaHP(numEnemies, 40); // Salud individual para Pea
-    std::vector<int> pebHP(numEnemies, 40); // Salud individual para Peb
-    std::vector<int> pecHP(numEnemies, 40); // Salud individual para Pec
+    std::vector<int> peaHP(numEnemies, 20); // Salud individual para Pea
+    std::vector<int> pebHP(numEnemies, 20); // Salud individual para Peb
+    std::vector<int> pecHP(numEnemies, 20); // Salud individual para Pec
 
     // --- Peb (Enemigos animados tipo Peb) ---
     sf::Texture pebTexture;
@@ -115,6 +120,20 @@ int main()
     EnemyHealthManager healthManager;
     healthManager.setHealths(std::vector<int>(numEnemies, 40), std::vector<int>(numEnemies, 40), std::vector<int>(numEnemies, 40));
 
+    // --- Eshoot (Disparo enemigo animado) ---
+    std::array<sf::Texture, 4> enemyBulletTextures;
+    for (int i = 0; i < 4; ++i) {
+        std::string filename = "assets/images/Eshoot(" + std::to_string(i + 1) + ").png";
+        if (!enemyBulletTextures[i].loadFromFile(filename)) {
+            return -1;
+        }
+    }
+    EnemyShooter enemyShooter(enemyBulletTextures, 0.5f, 0.1f);
+    float shootInterval = 0.5f;
+    int shootChance = 8;
+    sf::Clock shootClock;
+    std::vector<sf::Clock> enemyShootClocks(numEnemies); // Delay individual de disparo
+
     while (window.isOpen())
     {
         sf::Event event;
@@ -143,9 +162,9 @@ int main()
             if (pos.x + velocidad <= maxX)
                 player.move(velocidad, 0);
 
-        // Disparo (tecla Z)
+        // Disparo (tecla Space)
         static bool canShoot = true;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
             if (canShoot) {
                 sf::Sprite bullet(bulletTexture);
                 bullet.setPosition(player.getPosition().x + size.x / 2 - bulletTexture.getSize().x / 2, player.getPosition().y - bulletTexture.getSize().y);
@@ -168,17 +187,104 @@ int main()
         // --- Movimiento automático y animación de enemigos ---
         float peaDeltaTime = peaClock.restart().asSeconds();
         movementManager.update(peaDeltaTime);
+        // Restricción: si hay al menos una barrera activa, los enemigos no pueden bajar de y=500
+        bool barreraActiva = false;
+        for (const auto& barrera : barreras) {
+            if (barrera.isAlive()) {
+                barreraActiva = true;
+                break;
+            }
+        }
+        float limiteY = barreraActiva ? 450.0f : 800.0f;
         for (int i = 0; i < numEnemies; ++i) {
+            if (peaPositions[i].y > limiteY) peaPositions[i].y = limiteY;
             peas[i].setPosition(peaPositions[i]);
             peas[i].update(peaDeltaTime);
         }
         for (int i = 0; i < numEnemies; ++i) {
+            if (pebPositions[i].y > limiteY) pebPositions[i].y = limiteY;
             pebs[i].setPosition(pebPositions[i]);
             pebs[i].update(peaDeltaTime);
         }
         for (int i = 0; i < numEnemies; ++i) {
+            if (pecPositions[i].y > limiteY) pecPositions[i].y = limiteY;
             pecs[i].setPosition(pecPositions[i]);
             pecs[i].update(peaDeltaTime);
+        }
+
+        // --- Restricción: PEA debe estar al menos 16px arriba de PEB, y PEC al menos 16px arriba de PEA ---
+        for (int i = 0; i < numEnemies; ++i) {
+            // PEA vs PEB
+            if (std::abs(peaPositions[i].x - pebPositions[i].x) < 30) {
+                if (peaPositions[i].y > pebPositions[i].y - 16) {
+                    peaPositions[i].y = pebPositions[i].y - 16;
+                }
+            }
+        }
+        for (int i = 0; i < numEnemies; ++i) {
+            // PEC vs PEA
+            if (std::abs(pecPositions[i].x - peaPositions[i].x) < 30) {
+                if (pecPositions[i].y > peaPositions[i].y - 16) {
+                    pecPositions[i].y = peaPositions[i].y - 16;
+                }
+            }
+        }
+
+        // --- Restricción: Si hay al menos un PEB, todos los PEA deben estar al menos 16px arriba del PEB más cercano en X ---
+        bool hayPeb = false;
+        for (int i = 0; i < numEnemies; ++i) {
+            if (healthManager.getPebHP()[i] > 0) {
+                hayPeb = true;
+                break;
+            }
+        }
+        if (hayPeb) {
+            for (int i = 0; i < numEnemies; ++i) {
+                float minDeltaX = 1e6;
+                int idxPebCercano = -1;
+                for (int j = 0; j < numEnemies; ++j) {
+                    if (healthManager.getPebHP()[j] > 0) {
+                        float deltaX = std::abs(peaPositions[i].x - pebPositions[j].x);
+                        if (deltaX < minDeltaX) {
+                            minDeltaX = deltaX;
+                            idxPebCercano = j;
+                        }
+                    }
+                }
+                if (idxPebCercano != -1 && minDeltaX < 30) {
+                    if (peaPositions[i].y > pebPositions[idxPebCercano].y - 40) {
+                        peaPositions[i].y = pebPositions[idxPebCercano].y - 40;
+                    }
+                }
+            }
+        }
+        // --- Lo mismo para PEC respecto a PEA ---
+        bool hayPea = false;
+        for (int i = 0; i < numEnemies; ++i) {
+            if (healthManager.getPeaHP()[i] > 0) {
+                hayPea = true;
+                break;
+            }
+        }
+        if (hayPea) {
+            for (int i = 0; i < numEnemies; ++i) {
+                float minDeltaX = 1e6;
+                int idxPeaCercano = -1;
+                for (int j = 0; j < numEnemies; ++j) {
+                    if (healthManager.getPeaHP()[j] > 0) {
+                        float deltaX = std::abs(pecPositions[i].x - peaPositions[j].x);
+                        if (deltaX < minDeltaX) {
+                            minDeltaX = deltaX;
+                            idxPeaCercano = j;
+                        }
+                    }
+                }
+                if (idxPeaCercano != -1 && minDeltaX < 30) {
+                    if (pecPositions[i].y > peaPositions[idxPeaCercano].y - 16) {
+                        pecPositions[i].y = peaPositions[idxPeaCercano].y - 16;
+                    }
+                }
+            }
         }
 
         // --- Colisión entre balas y enemigos ---
@@ -218,14 +324,43 @@ int main()
             }
         }
 
+        // --- Disparo enemigo automático (ejemplo: Pea dispara) ---
+        for (int i = 0; i < numEnemies; ++i) {
+            if (healthManager.getPeaHP()[i] > 0) {
+                if (enemyShootClocks[i].getElapsedTime().asSeconds() > shootInterval) {
+                    enemyShooter.tryShoot(peaPositions[i], peaFrameWidth, peaFrameHeight, shootChance);
+                    enemyShootClocks[i].restart();
+                }
+            }
+        }
+        enemyShooter.updateBullets();
+        // --- Colisión entre balas enemigas y barreras ---
+        auto& peaBullets = enemyShooter.getBullets();
+        peaBullets.erase(std::remove_if(peaBullets.begin(), peaBullets.end(), [&](const EnemyBullet& eb) {
+            for (auto& barrera : barreras) {
+                if (barrera.isAlive() && eb.sprite.getGlobalBounds().intersects(barrera.getSprite().getGlobalBounds())) {
+                    barrera.takeDamage(20);
+                    return true;
+                }
+            }
+            if (eb.sprite.getPosition().y > 800) return true;
+            if (eb.sprite.getGlobalBounds().intersects(player.getGlobalBounds())) {
+                // Aquí podrías implementar daño al jugador si lo deseas
+                return true;
+            }
+            return false;
+        }), peaBullets.end());
+
         window.clear();
         // Dibuja el fondo espacial en la parte inferior
         window.draw(fondo);
-        for (int i = 0; i < numBarreras; ++i)
-            window.draw(barreras[i]);
+        for (auto& barrera : barreras)
+            if (barrera.isAlive())
+                window.draw(barrera.getSprite());
         window.draw(player);
         for (const auto& bullet : bullets)
             window.draw(bullet);
+        enemyShooter.drawBullets(window);
         for (int i = 0; i < numEnemies; ++i)
             if (healthManager.getPeaHP()[i] > 0)
                 peas[i].draw(window);

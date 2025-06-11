@@ -3,6 +3,8 @@
 #include <algorithm> // Para std::remove_if
 #include <random> // Para el generador aleatorio
 #include <array>
+#include "../include/EnemyShooter.hpp"
+#include "../include/Barrier.hpp"
 
 int main()
 {
@@ -37,30 +39,7 @@ int main()
     float peaVelocity = 500.0f;
     float peaDirection = 1.0f;
     sf::Clock peaClock;
-    // bool peaAlive = true; // NUEVO: Pea está vivo
     int peaHP = 200; // NUEVO: Puntos de vida de Pea
-
-    // --- Eshoot (Disparo enemigo animado) ---
-    std::array<sf::Texture, 4> enemyBulletTextures;
-    for (int i = 0; i < 4; ++i) {
-        std::string filename = "assets/images/Eshoot(" + std::to_string(i + 1) + ").png";
-        if (!enemyBulletTextures[i].loadFromFile(filename)) {
-            return -1;
-        }
-    }
-    struct EnemyBullet {
-        sf::Sprite sprite;
-        int currentFrame;
-        float animTime;
-    };
-    std::vector<EnemyBullet> enemyBullets;
-    float enemyBulletSpeed = 1.5f;
-    float enemyBulletFrameTime = 0.1f;
-    std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> dist(1, 20);
-    bool canEnemyShoot = true;
-    sf::Clock enemyShootClock;
-    int playerHP = 60; // El jugador tiene 60 puntos de vida
 
     // --- Barreras ---
     sf::Texture barreraTexture;
@@ -72,12 +51,27 @@ int main()
     const int barreraWidth = 64;
     const int numBarreras = 4;
     const int espacio = (800 - (numBarreras * barreraWidth)) / (numBarreras + 1);
-    sf::Sprite barreras[numBarreras];
-    int barreraHP[numBarreras] = {60, 60, 60, 60};
+    std::vector<Barrier> barreras;
     for (int i = 0; i < numBarreras; ++i) {
-        barreras[i].setTexture(barreraTexture);
-        barreras[i].setPosition(espacio + i * (barreraWidth + espacio), 490);
+        sf::Vector2f pos(espacio + i * (barreraWidth + espacio), 490);
+        barreras.emplace_back(barreraTexture, lowBarreraTexture, pos);
     }
+
+    // --- Eshoot (Disparo enemigo animado) ---
+    std::array<sf::Texture, 4> enemyBulletTextures;
+    for (int i = 0; i < 4; ++i) {
+        std::string filename = "assets/images/Eshoot(" + std::to_string(i + 1) + ").png";
+        if (!enemyBulletTextures[i].loadFromFile(filename)) {
+            return -1;
+        }
+    }
+    EnemyShooter peaShooter(enemyBulletTextures, 0.5f, 0.1f); // Línea 68: inicializa el disparador enemigo, pasando velocidad de disparo y frameTime de animación
+    float enemyBulletSpeed = 0.00001f;           // Línea 69: controla la velocidad de movimiento vertical de las balas enemigas en pantalla
+    float enemyBulletFrameTime = 0.1f;           // Línea 70: controla cada cuánto se actualiza el frame de animación de la bala enemiga
+    int peaShootChance = 8; // Puedes ajustar este valor para cambiar la probabilidad
+    sf::Clock peaShootClock;
+    float shootInterval = 0.5f;
+    PlayerHealth playerHP(60); // El jugador tiene 60 puntos de vida
 
     while (window.isOpen())
     {
@@ -96,7 +90,7 @@ int main()
         float minY = 550;
         float maxX = 800 - size.x;
         float maxY = 800 - size.y;
-        if (playerHP > 0) { // Solo puede moverse si tiene vidas
+        if (playerHP.isAlive()) { // Solo puede moverse si tiene vidas
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
                 if (pos.y - velocidad >= minY)
                     player.move(0, -velocidad);
@@ -113,7 +107,7 @@ int main()
 
         // Disparo (tecla Z)
         static bool canShoot = true;
-        if (playerHP > 0) { // Solo puede disparar si tiene vidas
+        if (playerHP.isAlive()) { // Solo puede disparar si tiene vidas
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
                 if (canShoot) {
                     sf::Sprite bullet(bulletTexture);
@@ -175,27 +169,14 @@ int main()
         }
 
         // --- Disparo enemigo (Pea) ---
-        if (peaHP > 0) {
-            if (canEnemyShoot) {
-                int randomValue = dist(rng);
-                if (randomValue < 8) {
-                    EnemyBullet eb;
-                    eb.sprite.setTexture(enemyBulletTextures[0]);
-                    eb.sprite.setPosition(pea.getPosition().x + peaFrameWidth / 2 - enemyBulletTextures[0].getSize().x / 2, pea.getPosition().y + peaFrameHeight);
-                    eb.currentFrame = 0;
-                    eb.animTime = 0.0f;
-                    enemyBullets.push_back(eb);
-                    canEnemyShoot = false;
-                    enemyShootClock.restart();
-                }
-            } else {
-                if (enemyShootClock.getElapsedTime().asSeconds() > 0.5f) {
-                    canEnemyShoot = true;
-                }
-            }
+        if (peaHP > 0 && peaShootClock.getElapsedTime().asSeconds() > shootInterval) {
+            peaShooter.tryShoot(pea.getPosition(), peaFrameWidth, peaFrameHeight, peaShootChance);
+            peaShootClock.restart();
         }
+        peaShooter.updateBullets();
+
         // Mover y animar balas enemigas
-        for (auto& eb : enemyBullets) {
+        for (auto& eb : peaShooter.getBullets()) {
             eb.sprite.move(0, enemyBulletSpeed);
             eb.animTime += enemyBulletFrameTime;
             if (eb.animTime >= enemyBulletFrameTime) {
@@ -205,49 +186,46 @@ int main()
             }
         }
         // --- Colisión entre balas enemigas y barreras ---
-        for (auto& eb : enemyBullets) {
-            for (int i = 0; i < numBarreras; ++i) {
-                if (barreraHP[i] > 0 && eb.sprite.getGlobalBounds().intersects(barreras[i].getGlobalBounds())) {
-                    barreraHP[i] -= 20;
-                    if (barreraHP[i] <= 20 && barreraHP[i] > 0) {
-                        barreras[i].setTexture(lowBarreraTexture);
-                    }
+        for (auto& eb : peaShooter.getBullets()) {
+            for (auto& barrera : barreras) {
+                if (barrera.isAlive() && eb.sprite.getGlobalBounds().intersects(barrera.getSprite().getGlobalBounds())) {
+                    barrera.takeDamage(20);
                 }
             }
         }
-        // Eliminar balas enemigas que colisionan con barreras
-        enemyBullets.erase(std::remove_if(enemyBullets.begin(), enemyBullets.end(), [&](const EnemyBullet& eb) {
-            for (int i = 0; i < numBarreras; ++i) {
-                if (barreraHP[i] > 0 && eb.sprite.getGlobalBounds().intersects(barreras[i].getGlobalBounds())) {
+        // Eliminar balas enemigas que colisionan con barreras o jugador
+        auto& peaBullets = peaShooter.getBullets();
+        peaBullets.erase(std::remove_if(peaBullets.begin(), peaBullets.end(), [&](const EnemyBullet& eb) {
+            for (auto& barrera : barreras) {
+                if (barrera.isAlive() && eb.sprite.getGlobalBounds().intersects(barrera.getSprite().getGlobalBounds())) {
                     return true;
                 }
             }
             if (eb.sprite.getPosition().y > 800) return true;
-            if (playerHP > 0 && eb.sprite.getGlobalBounds().intersects(player.getGlobalBounds())) {
-                playerHP -= 20;
+            if (playerHP.isAlive() && eb.sprite.getGlobalBounds().intersects(player.getGlobalBounds())) {
+                playerHP.takeDamage(20);
                 return true;
             }
             return false;
-        }), enemyBullets.end());
+        }), peaBullets.end());
 
         // Si el jugador muere, no cerrar la ventana, solo dejar de dibujarlo y de permitir acciones
-        if (playerHP <= 0) {
+        if (!playerHP.isAlive()) {
             // window.close();
         }
 
         window.clear();
         // Dibujar barreras si tienen vida
-        for (int i = 0; i < numBarreras; ++i) {
-            if (barreraHP[i] > 0)
-                window.draw(barreras[i]);
+        for (auto& barrera : barreras) {
+            if (barrera.isAlive())
+                window.draw(barrera.getSprite());
         }
-        if (playerHP > 0)
+        if (playerHP.isAlive())
             window.draw(player);
         for (const auto& bullet : bullets)
             window.draw(bullet);
         // Dibujar balas enemigas
-        for (const auto& eb : enemyBullets)
-            window.draw(eb.sprite);
+        peaShooter.drawBullets(window);
         if (peaHP > 0)
             window.draw(pea);
         window.display();

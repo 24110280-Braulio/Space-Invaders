@@ -41,7 +41,7 @@ public:
             }
             for (int i = 0; i < numEnemies; ++i) {
                 if ((*group.positions)[i].y > 550) {
-                    (*group.velocities)[i] = 200.0f;
+                    (*group.velocities)[i] = 100.0f;
                 }
             }
         }
