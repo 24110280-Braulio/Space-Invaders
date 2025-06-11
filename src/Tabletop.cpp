@@ -202,6 +202,19 @@ int main()
         }
         float limiteY = barreraActiva ? 450.0f : 800.0f;
         for (int i = 0; i < numEnemies; ++i) {
+            // Condición: Si cualquier enemigo llega a Y >= 800, daña al jugador y elimina al enemigo
+            if (peaPositions[i].y >= 800 && healthManager.getPeaHP()[i] > 0) {
+                playerHP.takeDamage(100);
+                healthManager.damagePea(i, healthManager.getPeaHP()[i]); // Eliminar enemigo
+            }
+            if (pebPositions[i].y >= 800 && healthManager.getPebHP()[i] > 0) {
+                playerHP.takeDamage(100);
+                healthManager.damagePeb(i, healthManager.getPebHP()[i]);
+            }
+            if (pecPositions[i].y >= 800 && healthManager.getPecHP()[i] > 0) {
+                playerHP.takeDamage(100);
+                healthManager.damagePec(i, healthManager.getPecHP()[i]);
+            }
             if (peaPositions[i].y > limiteY) peaPositions[i].y = limiteY;
             peas[i].setPosition(peaPositions[i]);
             peas[i].update(peaDeltaTime);
