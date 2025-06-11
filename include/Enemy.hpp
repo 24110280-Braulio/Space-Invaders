@@ -27,6 +27,10 @@ public:
         animacion.setPosition(pos.x, pos.y);
     }
 
+    sf::FloatRect getGlobalBounds() const {
+        return animacion.getSprite().getGlobalBounds();
+    }
+
 private:
     Animacion animacion;
 };

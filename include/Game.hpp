@@ -14,6 +14,7 @@ public:
         peaTexture.loadFromFile(PEA_PATH);
         pebTexture.loadFromFile(PEB_PATH);
         pecTexture.loadFromFile(PEC_PATH);
+        // Cada enemigo tiene animación gracias a la clase Animacion usada en Enemy
         // Agregar PEA
         enemyManager.addEnemies(peaTexture, 44, 32, 2, 0.2f, 8, 8, 104, 250, 66);
         // Agregar PEB

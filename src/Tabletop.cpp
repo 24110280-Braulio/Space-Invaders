@@ -1,6 +1,9 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <algorithm>
+#include "../include/EnemyMovementManager.hpp"
+#include "../include/EnemyHealthManager.hpp"
+#include "../include/Enemy.hpp"
 
 int main()
 {
@@ -54,16 +57,13 @@ int main()
     float peaAnimTime = 0.0f;
     int numEnemies = 8;
     float peaVelocity = 100.0f;
+    std::vector<Enemy> peas;
     std::vector<float> peaVelocities(numEnemies, peaVelocity);
-    std::vector<sf::Sprite> peas;
     std::vector<sf::Vector2f> peaPositions;
     std::vector<float> peaDirections(numEnemies, 1.0f);
     for (int i = 0; i < numEnemies; ++i) {
-        sf::Sprite enemy(peaTexture);
-        enemy.setPosition(60.0f + i * 90.0f, 60); // Pea en el medio
-        enemy.setTextureRect(sf::IntRect(0, 0, peaFrameWidth, peaFrameHeight));
-        peas.push_back(enemy);
-        peaPositions.push_back(enemy.getPosition());
+        peas.emplace_back(peaTexture, peaFrameWidth, peaFrameHeight, peaNumFrames, peaFrameTime, 8, 60.0f + i * 90.0f, 60);
+        peaPositions.push_back(sf::Vector2f(60.0f + i * 90.0f, 60));
     }
     sf::Clock peaClock;
     std::vector<int> peaHP(numEnemies, 40); // Salud individual para Pea
@@ -78,18 +78,15 @@ int main()
     int pebFrameHeight = 32;
     int pebNumFrames = 2;
     int pebCurrentFrame = 0;
-    float pebFrameTime = 1.0f;
+    float pebFrameTime = .1f;
     float pebAnimTime = 0.0f;
+    std::vector<Enemy> pebs;
     std::vector<float> pebVelocities(numEnemies, peaVelocity);
-    std::vector<sf::Sprite> pebs;
     std::vector<sf::Vector2f> pebPositions;
     std::vector<float> pebDirections(numEnemies, 1.0f);
     for (int i = 0; i < numEnemies; ++i) {
-        sf::Sprite enemy(pebTexture);
-        enemy.setPosition(60.0f + i * 90.0f, 120); // Peb abajo
-        enemy.setTextureRect(sf::IntRect(0, 0, pebFrameWidth, pebFrameHeight));
-        pebs.push_back(enemy);
-        pebPositions.push_back(enemy.getPosition());
+        pebs.emplace_back(pebTexture, pebFrameWidth, pebFrameHeight, pebNumFrames, pebFrameTime, 8, 60.0f + i * 90.0f, 120);
+        pebPositions.push_back(sf::Vector2f(60.0f + i * 90.0f, 120));
     }
 
     // --- Pec (Enemigos animados tipo Pec) ---
@@ -100,19 +97,23 @@ int main()
     int pecFrameHeight = 32;
     int pecNumFrames = 2;
     int pecCurrentFrame = 0;
-    float pecFrameTime = 1.0f;
+    float pecFrameTime = .1f;
     float pecAnimTime = 0.0f;
+    std::vector<Enemy> pecs;
     std::vector<float> pecVelocities(numEnemies, peaVelocity);
-    std::vector<sf::Sprite> pecs;
     std::vector<sf::Vector2f> pecPositions;
     std::vector<float> pecDirections(numEnemies, 1.0f);
     for (int i = 0; i < numEnemies; ++i) {
-        sf::Sprite enemy(pecTexture);
-        enemy.setPosition(60.0f + i * 90.0f, 0); // Pec arriba
-        enemy.setTextureRect(sf::IntRect(0, 0, pecFrameWidth, pecFrameHeight));
-        pecs.push_back(enemy);
-        pecPositions.push_back(enemy.getPosition());
+        pecs.emplace_back(pecTexture, pecFrameWidth, pecFrameHeight, pecNumFrames, pecFrameTime, 8, 60.0f + i * 90.0f, 0);
+        pecPositions.push_back(sf::Vector2f(60.0f + i * 90.0f, 0));
     }
+    // --- Managers ---
+    EnemyMovementManager movementManager;
+    movementManager.addEnemyGroup(&peaPositions, &peaVelocities, &peaDirections, peaFrameWidth, 32, 768);
+    movementManager.addEnemyGroup(&pebPositions, &pebVelocities, &pebDirections, pebFrameWidth, 32, 768);
+    movementManager.addEnemyGroup(&pecPositions, &pecVelocities, &pecDirections, pecFrameWidth, 32, 768);
+    EnemyHealthManager healthManager;
+    healthManager.setHealths(std::vector<int>(numEnemies, 40), std::vector<int>(numEnemies, 40), std::vector<int>(numEnemies, 40));
 
     while (window.isOpen())
     {
@@ -164,13 +165,29 @@ int main()
             return b.getPosition().y + b.getTexture()->getSize().y < 0;
         }), bullets.end());
 
+        // --- Movimiento automático y animación de enemigos ---
+        float peaDeltaTime = peaClock.restart().asSeconds();
+        movementManager.update(peaDeltaTime);
+        for (int i = 0; i < numEnemies; ++i) {
+            peas[i].setPosition(peaPositions[i]);
+            peas[i].update(peaDeltaTime);
+        }
+        for (int i = 0; i < numEnemies; ++i) {
+            pebs[i].setPosition(pebPositions[i]);
+            pebs[i].update(peaDeltaTime);
+        }
+        for (int i = 0; i < numEnemies; ++i) {
+            pecs[i].setPosition(pecPositions[i]);
+            pecs[i].update(peaDeltaTime);
+        }
+
         // --- Colisión entre balas y enemigos ---
         for (int i = 0; i < numEnemies; ++i) {
             // Pea
-            if (peaHP[i] > 0) {
+            if (healthManager.getPeaHP()[i] > 0) {
                 auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(peas[i].getGlobalBounds())) {
-                        peaHP[i] -= 20;
+                        healthManager.damagePea(i, 20);
                         return true;
                     }
                     return false;
@@ -178,10 +195,10 @@ int main()
                 bullets.erase(it, bullets.end());
             }
             // Peb
-            if (pebHP[i] > 0) {
+            if (healthManager.getPebHP()[i] > 0) {
                 auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(pebs[i].getGlobalBounds())) {
-                        pebHP[i] -= 20;
+                        healthManager.damagePeb(i, 20);
                         return true;
                     }
                     return false;
@@ -189,123 +206,16 @@ int main()
                 bullets.erase(it, bullets.end());
             }
             // Pec
-            if (pecHP[i] > 0) {
+            if (healthManager.getPecHP()[i] > 0) {
                 auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(pecs[i].getGlobalBounds())) {
-                        pecHP[i] -= 20;
+                        healthManager.damagePec(i, 20);
                         return true;
                     }
                     return false;
                 });
                 bullets.erase(it, bullets.end());
             }
-        }
-
-        // --- Movimiento automático y animación de Pea (múltiples enemigos) ---
-        float peaDeltaTime = peaClock.restart().asSeconds();
-        bool bounceLeft = peaPositions[0].x < 32;
-        bool bounceRight = peaPositions[numEnemies - 1].x > 768 - peaFrameWidth;
-        if (bounceLeft) {
-            for (int i = 0; i < numEnemies; ++i) {
-                peaPositions[i].x = 32 + (i * (peaPositions[1].x - peaPositions[0].x));
-                peaPositions[i].y += 32;
-                peaDirections[i] = 1.0f;
-            }
-        } else if (bounceRight) {
-            for (int i = 0; i < numEnemies; ++i) {
-                peaPositions[i].x = 768 - peaFrameWidth - (numEnemies - 1 - i) * (peaPositions[1].x - peaPositions[0].x);
-                peaPositions[i].y += 32;
-                peaDirections[i] = -1.0f;
-            }
-        } else {
-            for (int i = 0; i < numEnemies; ++i) {
-                peaPositions[i].x += peaVelocities[i] * peaDirections[i] * peaDeltaTime;
-            }
-        }
-        for (int i = 0; i < numEnemies; ++i) {
-            if (peaPositions[i].y > 550) {
-                peaVelocities[i] = 200.0f;
-            }
-            peas[i].setPosition(peaPositions[i]);
-        }
-        peaAnimTime += peaDeltaTime;
-        if (peaAnimTime >= peaFrameTime) {
-            peaCurrentFrame = (peaCurrentFrame + 1) % peaNumFrames;
-            int x = (peaCurrentFrame == 0) ? 0 : (peaFrameWidth + 8);
-            for (int i = 0; i < numEnemies; ++i) {
-                peas[i].setTextureRect(sf::IntRect(x, 0, peaFrameWidth, peaFrameHeight));
-            }
-            peaAnimTime = 0.0f;
-        }
-        // --- Movimiento automático y animación de Peb (múltiples enemigos) ---
-        bool pebBounceLeft = pebPositions[0].x < 32;
-        bool pebBounceRight = pebPositions[numEnemies - 1].x > 768 - pebFrameWidth;
-        if (pebBounceLeft) {
-            for (int i = 0; i < numEnemies; ++i) {
-                pebPositions[i].x = 32 + (i * (pebPositions[1].x - pebPositions[0].x));
-                pebPositions[i].y += 32;
-                pebDirections[i] = 1.0f;
-            }
-        } else if (pebBounceRight) {
-            for (int i = 0; i < numEnemies; ++i) {
-                pebPositions[i].x = 768 - pebFrameWidth - (numEnemies - 1 - i) * (pebPositions[1].x - pebPositions[0].x);
-                pebPositions[i].y += 32;
-                pebDirections[i] = -1.0f;
-            }
-        } else {
-            for (int i = 0; i < numEnemies; ++i) {
-                pebPositions[i].x += pebVelocities[i] * pebDirections[i] * peaDeltaTime;
-            }
-        }
-        for (int i = 0; i < numEnemies; ++i) {
-            if (pebPositions[i].y > 550) {
-                pebVelocities[i] = 200.0f;
-            }
-            pebs[i].setPosition(pebPositions[i]);
-        }
-        pebAnimTime += peaDeltaTime;
-        if (pebAnimTime >= pebFrameTime) {
-            pebCurrentFrame = (pebCurrentFrame + 1) % pebNumFrames;
-            int x = (pebCurrentFrame == 0) ? 0 : (pebFrameWidth + 8);
-            for (int i = 0; i < numEnemies; ++i) {
-                pebs[i].setTextureRect(sf::IntRect(x, 0, pebFrameWidth, pebFrameHeight));
-            }
-            pebAnimTime = 0.0f;
-        }
-        // --- Movimiento automático y animación de Pec (múltiples enemigos) ---
-        bool pecBounceLeft = pecPositions[0].x < 32;
-        bool pecBounceRight = pecPositions[numEnemies - 1].x > 768 - pecFrameWidth;
-        if (pecBounceLeft) {
-            for (int i = 0; i < numEnemies; ++i) {
-                pecPositions[i].x = 32 + (i * (pecPositions[1].x - pecPositions[0].x));
-                pecPositions[i].y += 32;
-                pecDirections[i] = 1.0f;
-            }
-        } else if (pecBounceRight) {
-            for (int i = 0; i < numEnemies; ++i) {
-                pecPositions[i].x = 768 - pecFrameWidth - (numEnemies - 1 - i) * (pecPositions[1].x - pecPositions[0].x);
-                pecPositions[i].y += 32;
-                pecDirections[i] = -1.0f;
-            }
-        } else {
-            for (int i = 0; i < numEnemies; ++i) {
-                pecPositions[i].x += pecVelocities[i] * pecDirections[i] * peaDeltaTime;
-            }
-        }
-        for (int i = 0; i < numEnemies; ++i) {
-            if (pecPositions[i].y > 550) {
-                pecVelocities[i] = 200.0f;
-            }
-            pecs[i].setPosition(pecPositions[i]);
-        }
-        pecAnimTime += peaDeltaTime;
-        if (pecAnimTime >= pecFrameTime) {
-            pecCurrentFrame = (pecCurrentFrame + 1) % pecNumFrames;
-            int x = (pecCurrentFrame == 0) ? 0 : (pecFrameWidth + 8);
-            for (int i = 0; i < numEnemies; ++i) {
-                pecs[i].setTextureRect(sf::IntRect(x, 0, pecFrameWidth, pecFrameHeight));
-            }
-            pecAnimTime = 0.0f;
         }
 
         window.clear();
@@ -317,14 +227,14 @@ int main()
         for (const auto& bullet : bullets)
             window.draw(bullet);
         for (int i = 0; i < numEnemies; ++i)
-            if (peaHP[i] > 0)
-                window.draw(peas[i]);
+            if (healthManager.getPeaHP()[i] > 0)
+                peas[i].draw(window);
         for (int i = 0; i < numEnemies; ++i)
-            if (pebHP[i] > 0)
-                window.draw(pebs[i]);
+            if (healthManager.getPebHP()[i] > 0)
+                pebs[i].draw(window);
         for (int i = 0; i < numEnemies; ++i)
-            if (pecHP[i] > 0)
-                window.draw(pecs[i]);
+            if (healthManager.getPecHP()[i] > 0)
+                pecs[i].draw(window);
         window.display();
     }
 

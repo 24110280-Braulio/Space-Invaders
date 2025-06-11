@@ -19,7 +19,7 @@ int main()
     sf::Sprite barreras[numBarreras];
     for (int i = 0; i < numBarreras; ++i) {
         barreras[i].setTexture(barreraTexture);
-        barreras[i].setPosition(espacio + i * (barreraWidth + espacio), 550);
+        barreras[i].setPosition(espacio + i * (barreraWidth + espacio), 490);
     }
 
     // Contador que parte de 100
