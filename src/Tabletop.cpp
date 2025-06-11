@@ -25,7 +25,7 @@ int main()
     sf::Sprite barreras[numBarreras];
     for (int i = 0; i < numBarreras; ++i) {
         barreras[i].setTexture(barreraTexture);
-        barreras[i].setPosition(espacio + i * (barreraWidth + espacio), 550);
+        barreras[i].setPosition(espacio + i * (barreraWidth + espacio), 490);
     }
 
     // --- Player ---
@@ -54,12 +54,13 @@ int main()
     float peaAnimTime = 0.0f;
     int numEnemies = 8;
     float peaVelocity = 100.0f;
+    std::vector<float> peaVelocities(numEnemies, peaVelocity);
     std::vector<sf::Sprite> peas;
     std::vector<sf::Vector2f> peaPositions;
     std::vector<float> peaDirections(numEnemies, 1.0f);
     for (int i = 0; i < numEnemies; ++i) {
         sf::Sprite enemy(peaTexture);
-        enemy.setPosition(60.0f + i * 90.0f, 0);
+        enemy.setPosition(60.0f + i * 90.0f, 60); // Pea en el medio
         enemy.setTextureRect(sf::IntRect(0, 0, peaFrameWidth, peaFrameHeight));
         peas.push_back(enemy);
         peaPositions.push_back(enemy.getPosition());
@@ -79,12 +80,13 @@ int main()
     int pebCurrentFrame = 0;
     float pebFrameTime = 1.0f;
     float pebAnimTime = 0.0f;
+    std::vector<float> pebVelocities(numEnemies, peaVelocity);
     std::vector<sf::Sprite> pebs;
     std::vector<sf::Vector2f> pebPositions;
     std::vector<float> pebDirections(numEnemies, 1.0f);
     for (int i = 0; i < numEnemies; ++i) {
         sf::Sprite enemy(pebTexture);
-        enemy.setPosition(60.0f + i * 90.0f, 100);
+        enemy.setPosition(60.0f + i * 90.0f, 120); // Peb abajo
         enemy.setTextureRect(sf::IntRect(0, 0, pebFrameWidth, pebFrameHeight));
         pebs.push_back(enemy);
         pebPositions.push_back(enemy.getPosition());
@@ -100,12 +102,13 @@ int main()
     int pecCurrentFrame = 0;
     float pecFrameTime = 1.0f;
     float pecAnimTime = 0.0f;
+    std::vector<float> pecVelocities(numEnemies, peaVelocity);
     std::vector<sf::Sprite> pecs;
     std::vector<sf::Vector2f> pecPositions;
     std::vector<float> pecDirections(numEnemies, 1.0f);
     for (int i = 0; i < numEnemies; ++i) {
         sf::Sprite enemy(pecTexture);
-        enemy.setPosition(60.0f + i * 90.0f, 200);
+        enemy.setPosition(60.0f + i * 90.0f, 0); // Pec arriba
         enemy.setTextureRect(sf::IntRect(0, 0, pecFrameWidth, pecFrameHeight));
         pecs.push_back(enemy);
         pecPositions.push_back(enemy.getPosition());
@@ -216,12 +219,12 @@ int main()
             }
         } else {
             for (int i = 0; i < numEnemies; ++i) {
-                peaPositions[i].x += peaVelocity * peaDirections[i] * peaDeltaTime;
+                peaPositions[i].x += peaVelocities[i] * peaDirections[i] * peaDeltaTime;
             }
         }
         for (int i = 0; i < numEnemies; ++i) {
             if (peaPositions[i].y > 550) {
-                peaVelocity = 200.0f;
+                peaVelocities[i] = 200.0f;
             }
             peas[i].setPosition(peaPositions[i]);
         }
@@ -251,12 +254,12 @@ int main()
             }
         } else {
             for (int i = 0; i < numEnemies; ++i) {
-                pebPositions[i].x += peaVelocity * pebDirections[i] * peaDeltaTime;
+                pebPositions[i].x += pebVelocities[i] * pebDirections[i] * peaDeltaTime;
             }
         }
         for (int i = 0; i < numEnemies; ++i) {
             if (pebPositions[i].y > 550) {
-                peaVelocity = 200.0f;
+                pebVelocities[i] = 200.0f;
             }
             pebs[i].setPosition(pebPositions[i]);
         }
@@ -286,12 +289,12 @@ int main()
             }
         } else {
             for (int i = 0; i < numEnemies; ++i) {
-                pecPositions[i].x += peaVelocity * pecDirections[i] * peaDeltaTime;
+                pecPositions[i].x += pecVelocities[i] * pecDirections[i] * peaDeltaTime;
             }
         }
         for (int i = 0; i < numEnemies; ++i) {
             if (pecPositions[i].y > 550) {
-                peaVelocity = 200.0f;
+                pecVelocities[i] = 200.0f;
             }
             pecs[i].setPosition(pecPositions[i]);
         }

@@ -22,7 +22,7 @@ int main()
     std::vector<float> directions(numEnemies, 1.0f);
     for (int i = 0; i < numEnemies; ++i) {
         sf::Sprite enemy(texture);
-        enemy.setPosition(60.0f + i * 90.0f, 0);
+        enemy.setPosition(60.0f + i * 90.0f, 200); // Peb abajo
         enemy.setTextureRect(sf::IntRect(0, 0, frameWidth, frameHeight));
         enemies.push_back(enemy);
         positions.push_back(enemy.getPosition());

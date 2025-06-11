@@ -26,7 +26,7 @@ int main()
 
     for (int i = 0; i < numEnemies; ++i) {
         sf::Sprite enemy(texture);
-        enemy.setPosition(60.0f + i * 90.0f, 0); // Espaciado horizontal
+        enemy.setPosition(60.0f + i * 90.0f, 100); // Pea en el medio
         enemy.setTextureRect(sf::IntRect(0, 0, 44, 32));
         enemies.push_back(enemy);
         positions.push_back(enemy.getPosition());
