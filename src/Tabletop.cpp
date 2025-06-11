@@ -33,7 +33,7 @@ int main()
     std::vector<Barrier> barreras;
     for (int i = 0; i < numBarreras; ++i) {
         sf::Vector2f pos(espacio + i * (barreraWidth + espacio), 490);
-        barreras.emplace_back(barreraTexture, lowBarreraTexture, pos, 5000); // Vida aumentada a 120
+        barreras.emplace_back(barreraTexture, lowBarreraTexture, pos, 60); // Vida cambiada a 60
     }
 
     // --- Player ---
@@ -42,6 +42,7 @@ int main()
         return -1;
     sf::Sprite player(playerTexture);
     player.setPosition(400, 700);
+    PlayerHealth playerHP(100); // Usar PlayerHealth de Barrier.hpp
 
     // --- Shootout (Bala) ---
     sf::Texture bulletTexture;
@@ -61,7 +62,7 @@ int main()
     float peaFrameTime = 0.1f;
     float peaAnimTime = 0.0f;
     int numEnemies = 8;
-    float peaVelocity = 100.0f;
+    float peaVelocity = 50.0f; // Reducido a la mitad
     std::vector<Enemy> peas;
     std::vector<float> peaVelocities(numEnemies, peaVelocity);
     std::vector<sf::Vector2f> peaPositions;
@@ -118,7 +119,7 @@ int main()
     movementManager.addEnemyGroup(&pebPositions, &pebVelocities, &pebDirections, pebFrameWidth, 32, 768);
     movementManager.addEnemyGroup(&pecPositions, &pecVelocities, &pecDirections, pecFrameWidth, 32, 768);
     EnemyHealthManager healthManager;
-    healthManager.setHealths(std::vector<int>(numEnemies, 40), std::vector<int>(numEnemies, 40), std::vector<int>(numEnemies, 40));
+    healthManager.setHealths(std::vector<int>(numEnemies, 20), std::vector<int>(numEnemies, 20), std::vector<int>(numEnemies, 20));
 
     // --- Eshoot (Disparo enemigo animado) ---
     std::array<sf::Texture, 4> enemyBulletTextures;
@@ -131,6 +132,8 @@ int main()
     EnemyShooter enemyShooter(enemyBulletTextures, 0.5f, 0.1f);
     float shootInterval = 0.5f;
     int shootChance = 8;
+    int totalEnemiesDefeated = 0;
+    int lastShootChanceUpdate = 0;
     sf::Clock shootClock;
     std::vector<sf::Clock> enemyShootClocks(numEnemies); // Delay individual de disparo
 
@@ -149,29 +152,31 @@ int main()
         float minY = 582;
         float maxX = 800 - size.x;
         float maxY = 800 - size.y;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-            if (pos.y - velocidad >= minY)
-                player.move(0, -velocidad);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-            if (pos.y + velocidad <= maxY)
-                player.move(0, velocidad);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-            if (pos.x - velocidad >= minX)
-                player.move(-velocidad, 0);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-            if (pos.x + velocidad <= maxX)
-                player.move(velocidad, 0);
+        if (playerHP.isAlive()) {
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+                if (pos.y - velocidad >= minY)
+                    player.move(0, -velocidad);
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+                if (pos.y + velocidad <= maxY)
+                    player.move(0, velocidad);
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+                if (pos.x - velocidad >= minX)
+                    player.move(-velocidad, 0);
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+                if (pos.x + velocidad <= maxX)
+                    player.move(velocidad, 0);
+        }
 
         // Disparo (tecla Space)
         static bool canShoot = true;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+        if (playerHP.isAlive() && sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
             if (canShoot) {
                 sf::Sprite bullet(bulletTexture);
                 bullet.setPosition(player.getPosition().x + size.x / 2 - bulletTexture.getSize().x / 2, player.getPosition().y - bulletTexture.getSize().y);
                 bullets.push_back(bullet);
                 canShoot = false;
             }
-        } else {
+        } else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
             canShoot = true;
         }
 
@@ -212,34 +217,32 @@ int main()
             pecs[i].update(peaDeltaTime);
         }
 
-        // --- Restricción: PEA debe estar al menos 16px arriba de PEB, y PEC al menos 16px arriba de PEA ---
-        for (int i = 0; i < numEnemies; ++i) {
-            // PEA vs PEB
-            if (std::abs(peaPositions[i].x - pebPositions[i].x) < 30) {
-                if (peaPositions[i].y > pebPositions[i].y - 16) {
-                    peaPositions[i].y = pebPositions[i].y - 16;
+        // --- Restricciones de altura entre enemigos ---
+        auto ajustarAltura = [](std::vector<sf::Vector2f>& arriba, std::vector<int>& arribaHP,
+                                const std::vector<sf::Vector2f>& abajo, const std::vector<int>& abajoHP,
+                                float distanciaX, float distanciaY) {
+            int n = arriba.size();
+            int m = abajo.size();
+            for (int i = 0; i < n; ++i) {
+                if (arribaHP[i] <= 0) continue;
+                for (int j = 0; j < m; ++j) {
+                    if (abajoHP[j] > 0 && std::abs(arriba[i].x - abajo[j].x) < distanciaX) {
+                        if (arriba[i].y > abajo[j].y - distanciaY) {
+                            arriba[i].y = abajo[j].y - distanciaY;
+                        }
+                    }
                 }
             }
-        }
-        for (int i = 0; i < numEnemies; ++i) {
-            // PEC vs PEA
-            if (std::abs(pecPositions[i].x - peaPositions[i].x) < 30) {
-                if (pecPositions[i].y > peaPositions[i].y - 16) {
-                    pecPositions[i].y = peaPositions[i].y - 16;
-                }
-            }
-        }
+        };
 
-        // --- Restricción: Si hay al menos un PEB, todos los PEA deben estar al menos 16px arriba del PEB más cercano en X ---
-        bool hayPeb = false;
-        for (int i = 0; i < numEnemies; ++i) {
-            if (healthManager.getPebHP()[i] > 0) {
-                hayPeb = true;
-                break;
-            }
-        }
+        ajustarAltura(peaPositions, healthManager.getPeaHP(), pebPositions, healthManager.getPebHP(), 30, 30); // PEA sobre PEB
+        ajustarAltura(pecPositions, healthManager.getPecHP(), peaPositions, healthManager.getPeaHP(), 30, 30); // PEC sobre PEA
+
+        // --- Restricción: Si hay al menos un PEB, todos los PEA deben estar al menos 40px arriba del PEB más cercano en X ---
+        bool hayPeb = std::any_of(healthManager.getPebHP().begin(), healthManager.getPebHP().end(), [](int hp){ return hp > 0; });
         if (hayPeb) {
             for (int i = 0; i < numEnemies; ++i) {
+                if (healthManager.getPeaHP()[i] <= 0) continue;
                 float minDeltaX = 1e6;
                 int idxPebCercano = -1;
                 for (int j = 0; j < numEnemies; ++j) {
@@ -259,15 +262,10 @@ int main()
             }
         }
         // --- Lo mismo para PEC respecto a PEA ---
-        bool hayPea = false;
-        for (int i = 0; i < numEnemies; ++i) {
-            if (healthManager.getPeaHP()[i] > 0) {
-                hayPea = true;
-                break;
-            }
-        }
+        bool hayPea = std::any_of(healthManager.getPeaHP().begin(), healthManager.getPeaHP().end(), [](int hp){ return hp > 0; });
         if (hayPea) {
             for (int i = 0; i < numEnemies; ++i) {
+                if (healthManager.getPecHP()[i] <= 0) continue;
                 float minDeltaX = 1e6;
                 int idxPeaCercano = -1;
                 for (int j = 0; j < numEnemies; ++j) {
@@ -288,12 +286,14 @@ int main()
         }
 
         // --- Colisión entre balas y enemigos ---
+        int enemiesDefeatedThisFrame = 0;
         for (int i = 0; i < numEnemies; ++i) {
             // Pea
             if (healthManager.getPeaHP()[i] > 0) {
                 auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(peas[i].getGlobalBounds())) {
                         healthManager.damagePea(i, 20);
+                        if (healthManager.getPeaHP()[i] <= 0) enemiesDefeatedThisFrame++;
                         return true;
                     }
                     return false;
@@ -305,6 +305,7 @@ int main()
                 auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(pebs[i].getGlobalBounds())) {
                         healthManager.damagePeb(i, 20);
+                        if (healthManager.getPebHP()[i] <= 0) enemiesDefeatedThisFrame++;
                         return true;
                     }
                     return false;
@@ -316,6 +317,7 @@ int main()
                 auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(pecs[i].getGlobalBounds())) {
                         healthManager.damagePec(i, 20);
+                        if (healthManager.getPecHP()[i] <= 0) enemiesDefeatedThisFrame++;
                         return true;
                     }
                     return false;
@@ -323,12 +325,29 @@ int main()
                 bullets.erase(it, bullets.end());
             }
         }
-
-        // --- Disparo enemigo automático (ejemplo: Pea dispara) ---
+        totalEnemiesDefeated += enemiesDefeatedThisFrame;
+        // Cada 2 enemigos derrotados, aumenta shootChance en 1
+        if ((totalEnemiesDefeated / 2) > lastShootChanceUpdate) {
+            shootChance++;
+            lastShootChanceUpdate = totalEnemiesDefeated / 2;
+        }
+        // --- Disparo enemigo automático (Pea, Peb y Pec disparan) ---
         for (int i = 0; i < numEnemies; ++i) {
             if (healthManager.getPeaHP()[i] > 0) {
                 if (enemyShootClocks[i].getElapsedTime().asSeconds() > shootInterval) {
                     enemyShooter.tryShoot(peaPositions[i], peaFrameWidth, peaFrameHeight, shootChance);
+                    enemyShootClocks[i].restart();
+                }
+            }
+            if (healthManager.getPebHP()[i] > 0) {
+                if (enemyShootClocks[i].getElapsedTime().asSeconds() > shootInterval) {
+                    enemyShooter.tryShoot(pebPositions[i], pebFrameWidth, pebFrameHeight, shootChance);
+                    enemyShootClocks[i].restart();
+                }
+            }
+            if (healthManager.getPecHP()[i] > 0) {
+                if (enemyShootClocks[i].getElapsedTime().asSeconds() > shootInterval) {
+                    enemyShooter.tryShoot(pecPositions[i], pecFrameWidth, pecFrameHeight, shootChance);
                     enemyShootClocks[i].restart();
                 }
             }
@@ -345,7 +364,8 @@ int main()
             }
             if (eb.sprite.getPosition().y > 800) return true;
             if (eb.sprite.getGlobalBounds().intersects(player.getGlobalBounds())) {
-                // Aquí podrías implementar daño al jugador si lo deseas
+                playerHP.takeDamage(20); // Usar método de PlayerHealth
+                // Aquí podrías agregar lógica de game over si !playerHP.isAlive()
                 return true;
             }
             return false;
@@ -357,7 +377,8 @@ int main()
         for (auto& barrera : barreras)
             if (barrera.isAlive())
                 window.draw(barrera.getSprite());
-        window.draw(player);
+        if (playerHP.isAlive())
+            window.draw(player);
         for (const auto& bullet : bullets)
             window.draw(bullet);
         enemyShooter.drawBullets(window);
