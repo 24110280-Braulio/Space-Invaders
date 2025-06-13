@@ -44,6 +44,24 @@ int main()
     player.setPosition(400, 700);
     PlayerHealth playerHP(100); // Usar PlayerHealth de Barrier.hpp
 
+    // --- Invencibilidad del jugador ---
+    sf::Clock playerInvincibleClock;
+    bool playerInvincible = false;
+
+    // --- Sprites de vida del jugador ---
+    sf::Texture hp100Texture, hp80Texture, hp60Texture, hp40Texture, hp20Texture, hp0Texture;
+    hp100Texture.loadFromFile("assets/images/100 HP.png");
+    hp80Texture.loadFromFile("assets/images/80 HP.png");
+    hp60Texture.loadFromFile("assets/images/60 HP.png");
+    hp40Texture.loadFromFile("assets/images/40 HP.png");
+    hp20Texture.loadFromFile("assets/images/20 HP.png");
+    hp0Texture.loadFromFile("assets/images/0 HP.png");
+    sf::Texture timeoutTexture;
+    timeoutTexture.loadFromFile("assets/images/Timeout.png");
+    sf::Sprite hpSprite(hp100Texture);
+    hpSprite.setPosition(0, 0);
+    hpSprite.setScale(68.0f / hp100Texture.getSize().x, 28.0f / hp100Texture.getSize().y);
+
     // --- Shootout (Bala) ---
     sf::Texture bulletTexture;
     if (!bulletTexture.loadFromFile("assets/images/DisparoNave.png"))
@@ -204,15 +222,27 @@ int main()
         for (int i = 0; i < numEnemies; ++i) {
             // Condición: Si cualquier enemigo llega a Y >= 800, daña al jugador y elimina al enemigo
             if (peaPositions[i].y >= 800 && healthManager.getPeaHP()[i] > 0) {
-                playerHP.takeDamage(100);
+                if (!playerInvincible && playerHP.isAlive()) {
+                    playerHP.takeDamage(100);
+                    playerInvincible = true;
+                    playerInvincibleClock.restart();
+                }
                 healthManager.damagePea(i, healthManager.getPeaHP()[i]); // Eliminar enemigo
             }
             if (pebPositions[i].y >= 800 && healthManager.getPebHP()[i] > 0) {
-                playerHP.takeDamage(100);
+                if (!playerInvincible && playerHP.isAlive()) {
+                    playerHP.takeDamage(100);
+                    playerInvincible = true;
+                    playerInvincibleClock.restart();
+                }
                 healthManager.damagePeb(i, healthManager.getPebHP()[i]);
             }
             if (pecPositions[i].y >= 800 && healthManager.getPecHP()[i] > 0) {
-                playerHP.takeDamage(100);
+                if (!playerInvincible && playerHP.isAlive()) {
+                    playerHP.takeDamage(100);
+                    playerInvincible = true;
+                    playerInvincibleClock.restart();
+                }
                 healthManager.damagePec(i, healthManager.getPecHP()[i]);
             }
             if (peaPositions[i].y > limiteY) peaPositions[i].y = limiteY;
@@ -377,16 +407,93 @@ int main()
             }
             if (eb.sprite.getPosition().y > 800) return true;
             if (eb.sprite.getGlobalBounds().intersects(player.getGlobalBounds())) {
-                playerHP.takeDamage(20); // Usar método de PlayerHealth
+                if (!playerInvincible && playerHP.isAlive()) {
+                    playerHP.takeDamage(20); // Usar método de PlayerHealth
+                    playerInvincible = true;
+                    playerInvincibleClock.restart();
+                }
                 // Aquí podrías agregar lógica de game over si !playerHP.isAlive()
                 return true;
             }
             return false;
         }), peaBullets.end());
 
+        // --- Daño por enemigos que llegan al fondo ---
+        for (int i = 0; i < numEnemies; ++i) {
+            // Pea
+            if (peaPositions[i].y >= 800 && healthManager.getPeaHP()[i] > 0) {
+                if (!playerInvincible && playerHP.isAlive()) {
+                    playerHP.takeDamage(100);
+                    playerInvincible = true;
+                    playerInvincibleClock.restart();
+                }
+                healthManager.damagePea(i, healthManager.getPeaHP()[i]); // Eliminar enemigo
+            }
+            // Peb
+            if (pebPositions[i].y >= 800 && healthManager.getPebHP()[i] > 0) {
+                if (!playerInvincible && playerHP.isAlive()) {
+                    playerHP.takeDamage(100);
+                    playerInvincible = true;
+                    playerInvincibleClock.restart();
+                }
+                healthManager.damagePeb(i, healthManager.getPebHP()[i]);
+            }
+            // Pec
+            if (pecPositions[i].y >= 800 && healthManager.getPecHP()[i] > 0) {
+                if (!playerInvincible && playerHP.isAlive()) {
+                    playerHP.takeDamage(100);
+                    playerInvincible = true;
+                    playerInvincibleClock.restart();
+                }
+                healthManager.damagePec(i, healthManager.getPecHP()[i]);
+            }
+        }
+
+        // --- Actualizar estado de invencibilidad ---
+        if (playerInvincible && playerInvincibleClock.getElapsedTime().asSeconds() >= 2.0f) {
+            playerInvincible = false;
+        }
+
+        // --- Actualizar sprite de vida según el HP exacto o invencibilidad ---
+        if (playerInvincible) {
+            hpSprite.setTexture(timeoutTexture, true);
+            // Mantener el mismo tamaño y posición
+            hpSprite.setScale(68.0f / timeoutTexture.getSize().x, 28.0f / timeoutTexture.getSize().y);
+        } else {
+            switch (playerHP.getHP()) {
+                case 100:
+                    hpSprite.setTexture(hp100Texture, true);
+                    hpSprite.setScale(68.0f / hp100Texture.getSize().x, 28.0f / hp100Texture.getSize().y);
+                    break;
+                case 80:
+                    hpSprite.setTexture(hp80Texture, true);
+                    hpSprite.setScale(68.0f / hp80Texture.getSize().x, 28.0f / hp80Texture.getSize().y);
+                    break;
+                case 60:
+                    hpSprite.setTexture(hp60Texture, true);
+                    hpSprite.setScale(68.0f / hp60Texture.getSize().x, 28.0f / hp60Texture.getSize().y);
+                    break;
+                case 40:
+                    hpSprite.setTexture(hp40Texture, true);
+                    hpSprite.setScale(68.0f / hp40Texture.getSize().x, 28.0f / hp40Texture.getSize().y);
+                    break;
+                case 20:
+                    hpSprite.setTexture(hp20Texture, true);
+                    hpSprite.setScale(68.0f / hp20Texture.getSize().x, 28.0f / hp20Texture.getSize().y);
+                    break;
+                case 0:
+                    hpSprite.setTexture(hp0Texture, true);
+                    hpSprite.setScale(68.0f / hp0Texture.getSize().x, 28.0f / hp0Texture.getSize().y);
+                    break;
+                default:
+                    break;
+            }
+        }
+
         window.clear();
         // Dibuja el fondo espacial en la parte inferior
         window.draw(fondo);
+        window.draw(hpSprite); // Dibuja el sprite de vida del jugador
         for (auto& barrera : barreras)
             if (barrera.isAlive())
                 window.draw(barrera.getSprite());
