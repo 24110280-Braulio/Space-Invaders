@@ -29,14 +29,3 @@ private:
     int hp;
     int maxHp;
 };
-
-class PlayerHealth {
-public:
-    PlayerHealth(int maxHP = 60) : hp(maxHP), maxHp(maxHP) {}
-    void takeDamage(int dmg) { if (hp > 0) hp -= dmg; if (hp < 0) hp = 0; }
-    bool isAlive() const { return hp > 0; }
-    int getHP() const { return hp; }
-private:
-    int hp;
-    int maxHp;
-};

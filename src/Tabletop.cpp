@@ -1,14 +1,68 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <algorithm>
+#include <array>
+#include <functional> // <-- Added for std::function
 #include "../include/EnemyMovementManager.hpp"
 #include "../include/EnemyHealthManager.hpp"
 #include "../include/Enemy.hpp"
 #include "../include/Barrier.hpp"
+#include "../include/PlayerHealth.hpp"
 #include "../include/EnemyShooter.hpp"
+
+// --- Forward declarations for functions used in main ---
+void drawBarriers(sf::RenderWindow& window, std::vector<Barrier>& barreras);
+void drawPlayer(sf::RenderWindow& window, const sf::Sprite& player, const PlayerHealth& playerHP);
+
+// --- Invincibility globals ---
+bool playerInvincible = false;
+sf::Clock playerInvincibleClock;
+
+// --- Estructura para agrupar datos de enemigos ---
+struct EnemyGroup {
+    std::vector<Enemy>* enemies;
+    std::vector<float>* velocities;
+    std::vector<sf::Vector2f>* positions;
+    std::vector<float>* directions;
+    int frameWidth;
+    int frameHeight;
+    int numFrames;
+    float frameTime;
+    int yBase;
+    std::function<std::vector<int>&()> getHP;
+    std::function<void(int,int)> damage;
+};
+
+// --- BulletManager para balas del jugador ---
+class BulletManager {
+public:
+    BulletManager(const sf::Texture& texture, float speed) : bulletTexture(texture), bulletSpeed(speed) {}
+    void shoot(const sf::Vector2f& pos) {
+        sf::Sprite bullet(bulletTexture);
+        bullet.setPosition(pos);
+        bullets.push_back(bullet);
+    }
+    void update() {
+        for (auto& bullet : bullets) bullet.move(0, -bulletSpeed);
+        bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& b) {
+            return b.getPosition().y + b.getTexture()->getSize().y < 0;
+        }), bullets.end());
+    }
+    std::vector<sf::Sprite>& getBullets() { return bullets; }
+    void draw(sf::RenderWindow& window) {
+        for (const auto& bullet : bullets) window.draw(bullet);
+    }
+private:
+    std::vector<sf::Sprite> bullets;
+    const sf::Texture& bulletTexture;
+    float bulletSpeed;
+};
+
+enum class GameState { Playing, GameOver };
 
 int main()
 {
+    GameState gameState = GameState::Playing;
     sf::RenderWindow window(sf::VideoMode(800, 800), "Tabletop");
 
     // --- Fondo Espacial ---
@@ -33,7 +87,7 @@ int main()
     std::vector<Barrier> barreras;
     for (int i = 0; i < numBarreras; ++i) {
         sf::Vector2f pos(espacio + i * (barreraWidth + espacio), 490);
-        barreras.emplace_back(barreraTexture, lowBarreraTexture, pos, 60); // Vida cambiada a 60
+        barreras.emplace_back(barreraTexture, lowBarreraTexture, pos, 100); // Vida cambiada a 100
     }
 
     // --- Player ---
@@ -42,32 +96,25 @@ int main()
         return -1;
     sf::Sprite player(playerTexture);
     player.setPosition(400, 700);
-    PlayerHealth playerHP(100); // Usar PlayerHealth de Barrier.hpp
-
-    // --- Invencibilidad del jugador ---
-    sf::Clock playerInvincibleClock;
-    bool playerInvincible = false;
-
+    PlayerHealth playerHP(100);
     // --- Sprites de vida del jugador ---
-    sf::Texture hp100Texture, hp80Texture, hp60Texture, hp40Texture, hp20Texture, hp0Texture;
+    sf::Texture hp100Texture, hp80Texture, hp60Texture, hp40Texture, hp20Texture, hp0Texture, timeoutTexture;
     hp100Texture.loadFromFile("assets/images/100 HP.png");
     hp80Texture.loadFromFile("assets/images/80 HP.png");
     hp60Texture.loadFromFile("assets/images/60 HP.png");
     hp40Texture.loadFromFile("assets/images/40 HP.png");
     hp20Texture.loadFromFile("assets/images/20 HP.png");
     hp0Texture.loadFromFile("assets/images/0 HP.png");
-    sf::Texture timeoutTexture;
     timeoutTexture.loadFromFile("assets/images/Timeout.png");
-    sf::Sprite hpSprite(hp100Texture);
-    hpSprite.setPosition(0, 0);
-    hpSprite.setScale(68.0f / hp100Texture.getSize().x, 28.0f / hp100Texture.getSize().y);
+    playerHP.setTextures(hp100Texture, hp80Texture, hp60Texture, hp40Texture, hp20Texture, hp0Texture, timeoutTexture);
+    // --- Invencibilidad del jugador ---
+    // (Ahora gestionada por PlayerHealth)
 
     // --- Shootout (Bala) ---
     sf::Texture bulletTexture;
     if (!bulletTexture.loadFromFile("assets/images/DisparoNave.png"))
         return -1;
-    std::vector<sf::Sprite> bullets;
-    float bulletSpeed = 1.5f;
+    BulletManager bulletManager(bulletTexture, 1.5f);
 
     // --- Pea (Enemigos animados tipo Space Invaders) ---
     sf::Texture peaTexture;
@@ -80,7 +127,7 @@ int main()
     float peaFrameTime = 0.1f;
     float peaAnimTime = 0.0f;
     int numEnemies = 8;
-    float peaVelocity = 50.0f; // Reducido a la mitad
+    float peaVelocity = 40.0f; // Reducido 10.0f
     std::vector<Enemy> peas;
     std::vector<float> peaVelocities(numEnemies, peaVelocity);
     std::vector<sf::Vector2f> peaPositions;
@@ -147,9 +194,9 @@ int main()
             return -1;
         }
     }
-    EnemyShooter enemyShooter(enemyBulletTextures, 0.5f, 0.1f);
+    EnemyShooter enemyShooter(enemyBulletTextures, 0.3f, 0.1f);
     float shootInterval = 0.5f;
-    int shootChance = 8;
+    int shootChance = 6;
     int totalEnemiesDefeated = 0;
     int lastShootChanceUpdate = 0;
     sf::Clock shootClock;
@@ -161,6 +208,14 @@ int main()
         while (window.pollEvent(event))
             if (event.type == sf::Event::Closed)
                 window.close();
+
+        if (gameState == GameState::GameOver) {
+            // Aquí podrías mostrar pantalla de Game Over
+            // window.clear();
+            // ...dibuja mensaje de Game Over...
+            // window.display();
+            continue;
+        }
 
         // Movimiento del jugador
         float velocidad = 0.5f;
@@ -189,23 +244,13 @@ int main()
         static bool canShoot = true;
         if (playerHP.isAlive() && sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
             if (canShoot) {
-                sf::Sprite bullet(bulletTexture);
-                bullet.setPosition(player.getPosition().x + size.x / 2 - bulletTexture.getSize().x / 2, player.getPosition().y - bulletTexture.getSize().y);
-                bullets.push_back(bullet);
+                bulletManager.shoot(sf::Vector2f(player.getPosition().x + playerTexture.getSize().x / 2 - bulletTexture.getSize().x / 2, player.getPosition().y - bulletTexture.getSize().y));
                 canShoot = false;
             }
         } else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
             canShoot = true;
         }
-
-        // Mover balas
-        for (auto& bullet : bullets) {
-            bullet.move(0, -bulletSpeed);
-        }
-        // Eliminar balas fuera de pantalla
-        bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](const sf::Sprite& b) {
-            return b.getPosition().y + b.getTexture()->getSize().y < 0;
-        }), bullets.end());
+        bulletManager.update();
 
         // --- Movimiento automático y animación de enemigos ---
         float peaDeltaTime = peaClock.restart().asSeconds();
@@ -333,7 +378,7 @@ int main()
         for (int i = 0; i < numEnemies; ++i) {
             // Pea
             if (healthManager.getPeaHP()[i] > 0) {
-                auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
+                auto it = std::remove_if(bulletManager.getBullets().begin(), bulletManager.getBullets().end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(peas[i].getGlobalBounds())) {
                         healthManager.damagePea(i, 20);
                         if (healthManager.getPeaHP()[i] <= 0) enemiesDefeatedThisFrame++;
@@ -341,11 +386,11 @@ int main()
                     }
                     return false;
                 });
-                bullets.erase(it, bullets.end());
+                bulletManager.getBullets().erase(it, bulletManager.getBullets().end());
             }
             // Peb
             if (healthManager.getPebHP()[i] > 0) {
-                auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
+                auto it = std::remove_if(bulletManager.getBullets().begin(), bulletManager.getBullets().end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(pebs[i].getGlobalBounds())) {
                         healthManager.damagePeb(i, 20);
                         if (healthManager.getPebHP()[i] <= 0) enemiesDefeatedThisFrame++;
@@ -353,11 +398,11 @@ int main()
                     }
                     return false;
                 });
-                bullets.erase(it, bullets.end());
+                bulletManager.getBullets().erase(it, bulletManager.getBullets().end());
             }
             // Pec
             if (healthManager.getPecHP()[i] > 0) {
-                auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
+                auto it = std::remove_if(bulletManager.getBullets().begin(), bulletManager.getBullets().end(), [&](const sf::Sprite& bullet) {
                     if (bullet.getGlobalBounds().intersects(pecs[i].getGlobalBounds())) {
                         healthManager.damagePec(i, 20);
                         if (healthManager.getPecHP()[i] <= 0) enemiesDefeatedThisFrame++;
@@ -365,7 +410,7 @@ int main()
                     }
                     return false;
                 });
-                bullets.erase(it, bullets.end());
+                bulletManager.getBullets().erase(it, bulletManager.getBullets().end());
             }
         }
         totalEnemiesDefeated += enemiesDefeatedThisFrame;
@@ -407,12 +452,7 @@ int main()
             }
             if (eb.sprite.getPosition().y > 800) return true;
             if (eb.sprite.getGlobalBounds().intersects(player.getGlobalBounds())) {
-                if (!playerInvincible && playerHP.isAlive()) {
-                    playerHP.takeDamage(20); // Usar método de PlayerHealth
-                    playerInvincible = true;
-                    playerInvincibleClock.restart();
-                }
-                // Aquí podrías agregar lógica de game over si !playerHP.isAlive()
+                playerHP.takeDamage(20);
                 return true;
             }
             return false;
@@ -420,87 +460,33 @@ int main()
 
         // --- Daño por enemigos que llegan al fondo ---
         for (int i = 0; i < numEnemies; ++i) {
-            // Pea
             if (peaPositions[i].y >= 800 && healthManager.getPeaHP()[i] > 0) {
-                if (!playerInvincible && playerHP.isAlive()) {
-                    playerHP.takeDamage(100);
-                    playerInvincible = true;
-                    playerInvincibleClock.restart();
-                }
-                healthManager.damagePea(i, healthManager.getPeaHP()[i]); // Eliminar enemigo
+                playerHP.takeDamage(100);
+                healthManager.damagePea(i, healthManager.getPeaHP()[i]);
             }
-            // Peb
             if (pebPositions[i].y >= 800 && healthManager.getPebHP()[i] > 0) {
-                if (!playerInvincible && playerHP.isAlive()) {
-                    playerHP.takeDamage(100);
-                    playerInvincible = true;
-                    playerInvincibleClock.restart();
-                }
+                playerHP.takeDamage(100);
                 healthManager.damagePeb(i, healthManager.getPebHP()[i]);
             }
-            // Pec
             if (pecPositions[i].y >= 800 && healthManager.getPecHP()[i] > 0) {
-                if (!playerInvincible && playerHP.isAlive()) {
-                    playerHP.takeDamage(100);
-                    playerInvincible = true;
-                    playerInvincibleClock.restart();
-                }
+                playerHP.takeDamage(100);
                 healthManager.damagePec(i, healthManager.getPecHP()[i]);
             }
         }
 
-        // --- Actualizar estado de invencibilidad ---
-        if (playerInvincible && playerInvincibleClock.getElapsedTime().asSeconds() >= 2.0f) {
-            playerInvincible = false;
-        }
+        // --- Actualizar estado de invencibilidad y sprite de vida ---
+        playerHP.update();
 
-        // --- Actualizar sprite de vida según el HP exacto o invencibilidad ---
-        if (playerInvincible) {
-            hpSprite.setTexture(timeoutTexture, true);
-            // Mantener el mismo tamaño y posición
-            hpSprite.setScale(68.0f / timeoutTexture.getSize().x, 28.0f / timeoutTexture.getSize().y);
-        } else {
-            switch (playerHP.getHP()) {
-                case 100:
-                    hpSprite.setTexture(hp100Texture, true);
-                    hpSprite.setScale(68.0f / hp100Texture.getSize().x, 28.0f / hp100Texture.getSize().y);
-                    break;
-                case 80:
-                    hpSprite.setTexture(hp80Texture, true);
-                    hpSprite.setScale(68.0f / hp80Texture.getSize().x, 28.0f / hp80Texture.getSize().y);
-                    break;
-                case 60:
-                    hpSprite.setTexture(hp60Texture, true);
-                    hpSprite.setScale(68.0f / hp60Texture.getSize().x, 28.0f / hp60Texture.getSize().y);
-                    break;
-                case 40:
-                    hpSprite.setTexture(hp40Texture, true);
-                    hpSprite.setScale(68.0f / hp40Texture.getSize().x, 28.0f / hp40Texture.getSize().y);
-                    break;
-                case 20:
-                    hpSprite.setTexture(hp20Texture, true);
-                    hpSprite.setScale(68.0f / hp20Texture.getSize().x, 28.0f / hp20Texture.getSize().y);
-                    break;
-                case 0:
-                    hpSprite.setTexture(hp0Texture, true);
-                    hpSprite.setScale(68.0f / hp0Texture.getSize().x, 28.0f / hp0Texture.getSize().y);
-                    break;
-                default:
-                    break;
-            }
+        if (!playerHP.isAlive()) {
+            gameState = GameState::GameOver;
         }
 
         window.clear();
-        // Dibuja el fondo espacial en la parte inferior
         window.draw(fondo);
-        window.draw(hpSprite); // Dibuja el sprite de vida del jugador
-        for (auto& barrera : barreras)
-            if (barrera.isAlive())
-                window.draw(barrera.getSprite());
-        if (playerHP.isAlive())
-            window.draw(player);
-        for (const auto& bullet : bullets)
-            window.draw(bullet);
+        window.draw(playerHP.getSprite());
+        drawBarriers(window, barreras);
+        drawPlayer(window, player, playerHP);
+        bulletManager.draw(window);
         enemyShooter.drawBullets(window);
         for (int i = 0; i < numEnemies; ++i)
             if (healthManager.getPeaHP()[i] > 0)
@@ -515,4 +501,48 @@ int main()
     }
 
     return 0;
+}
+
+// --- Función para manejar la entrada del jugador ---
+void handlePlayerInput(sf::Sprite& player, float velocidad, const sf::Texture& playerTexture, PlayerHealth& playerHP) {
+    sf::Vector2f pos = player.getPosition();
+    sf::Vector2u size = playerTexture.getSize();
+    float minX = 0;
+    float minY = 582;
+    float maxX = 800 - size.x;
+    float maxY = 800 - size.y;
+    if (playerHP.isAlive()) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+            if (pos.y - velocidad >= minY)
+                player.move(0, -velocidad);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+            if (pos.y + velocidad <= maxY)
+                player.move(0, velocidad);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+            if (pos.x - velocidad >= minX)
+                player.move(-velocidad, 0);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+            if (pos.x + velocidad <= maxX)
+                player.move(velocidad, 0);
+    }
+}
+
+// --- Función para renderizar enemigos ---
+void drawEnemies(sf::RenderWindow& window, const EnemyGroup& group, const std::vector<int>& hp) {
+    for (int i = 0; i < hp.size(); ++i)
+        if (hp[i] > 0)
+            (*group.enemies)[i].draw(window);
+}
+
+// --- Función para renderizar barreras ---
+void drawBarriers(sf::RenderWindow& window, std::vector<Barrier>& barreras) {
+    for (auto& barrera : barreras)
+        if (barrera.isAlive())
+            window.draw(barrera.getSprite());
+}
+
+// --- Función para renderizar jugador ---
+void drawPlayer(sf::RenderWindow& window, const sf::Sprite& player, const PlayerHealth& playerHP) {
+    if (playerHP.isAlive())
+        window.draw(player);
 }
