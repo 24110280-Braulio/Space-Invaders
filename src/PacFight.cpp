@@ -119,6 +119,7 @@ int main() {
     float pacAnimTime = 0.0f;
     float pacAnimInterval = 0.15f;
     bool pacHungryDescending = false;
+    int pacHP = 400; // Pacman inicia con 400 puntos de vida
 
     // --- Generador de Goals (mecánica de GeneradorBF2.cpp) ---
     sf::Texture goalTexture;
@@ -126,13 +127,37 @@ int main() {
     struct GoalObj {
         sf::Sprite sprite;
         int x, y;
+        int hp = 20; // Cada Goal tiene 20 puntos de vida
     };
     std::vector<GoalObj> goals;
     sf::Clock goalSpawnClock;
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
 
     sf::Clock clock;
     bool canShoot = true;
     while (window.isOpen()) {
+        // --- Generar Goals cada 2 segundos si hay menos de 5 ---
+        if (goalSpawnClock.getElapsedTime().asSeconds() >= 2.0f && goals.size() < 5) {
+            int x = 32 + std::rand() % (768 - 32 + 1);
+            int y = 32 + std::rand() % (500 - 32 + 1);
+            bool exists = false;
+            for (const auto& g : goals) {
+                if (g.x == x && g.y == y) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                GoalObj obj;
+                obj.sprite.setTexture(goalTexture);
+                obj.sprite.setPosition(static_cast<float>(x), static_cast<float>(y));
+                obj.x = x;
+                obj.y = y;
+                goals.push_back(obj);
+                goalSpawnClock.restart();
+            }
+        }
+
         sf::Event event;
         while (window.pollEvent(event))
             if (event.type == sf::Event::Closed)
@@ -181,6 +206,46 @@ int main() {
         }), bullets.end());
 
         float deltaTime = clock.restart().asSeconds();
+
+        // --- Daño al jugador por colisión con enemigos (con invulnerabilidad Tabletop) ---
+        static bool pacGoingDown = true;
+        if (playerHP.isAlive() && !playerHP.isInvulnerable()) {
+            bool damaged = false;
+            sf::FloatRect playerBounds = player.getGlobalBounds();
+            // Blinky
+            if (blinkyMoving && blinkySprite.getGlobalBounds().intersects(playerBounds)) {
+                playerHP.takeDamage(20);
+                damaged = true;
+            }
+            // Inky
+            if (inkyMoving && inkySprite.getGlobalBounds().intersects(playerBounds)) {
+                playerHP.takeDamage(20);
+                damaged = true;
+            }
+            // Clayd
+            if (claydMoving && claydSprite.getGlobalBounds().intersects(playerBounds)) {
+                playerHP.takeDamage(20);
+                damaged = true;
+            }
+            // Pinky
+            if (pinkyActive && !pinkyPostCycleDelay && pinkySprite.getGlobalBounds().intersects(playerBounds)) {
+                playerHP.takeDamage(20);
+                damaged = true;
+            }
+            // Pac (solo si no está ascendiendo)
+            if (pacSprite.getGlobalBounds().intersects(playerBounds)) {
+                if (
+                    (pacState == 0 && pacGoingDown) ||
+                    (pacState == 1 && pacHungryDescending && pacSprite.getPosition().y == 800)
+                ) {
+                    playerHP.takeDamage(20);
+                    damaged = true;
+                }
+            }
+        }
+        // --- Actualizar estado de invulnerabilidad y sprite de vida ---
+        playerHP.update();
+
         // --- Blinky: lógica de temporizador y movimiento ---
         if (!blinkyMoving && blinkyTimer.getElapsedTime().asSeconds() >= blinkyInterval) {
             blinkyMoving = true;
@@ -353,11 +418,11 @@ int main() {
             pacAnimFrame = (pacAnimFrame + 1) % 2;
             pacAnimTime = 0.0f;
         }
-        static bool pacGoingDown = true;
         // Colisión Pac-Goal: activa modo hambriento y elimina el Goal tocado
         if (pacState == 0) {
             for (auto it = goals.begin(); it != goals.end(); ) {
-                if (pacSprite.getGlobalBounds().intersects(it->sprite.getGlobalBounds())) {
+                // Solo permitir daño si Pac está descendiendo (no ascendiendo)
+                if (pacGoingDown && pacSprite.getGlobalBounds().intersects(it->sprite.getGlobalBounds())) {
                     pacState = 1;
                     pacHungryDescending = false;
                     it = goals.erase(it);
@@ -459,26 +524,29 @@ int main() {
             }
         }
 
-        // --- Generador de Goals: generación cada 2 segundos si hay menos de 5 y sin repetir coordenadas ---
-        if (goalSpawnClock.getElapsedTime().asSeconds() >= 2.0f && goals.size() < 5) {
-            int x = 32 + std::rand() % (768 - 32 + 1);
-            int y = 32 + std::rand() % (500 - 32 + 1);
-            bool exists = false;
-            for (const auto& g : goals) {
-                if (g.x == x && g.y == y) {
-                    exists = true;
+        // --- Daño de balas a Pac y Goals ---
+        for (auto bulletIt = bullets.begin(); bulletIt != bullets.end(); ) {
+            bool bulletRemoved = false;
+            sf::FloatRect bulletBounds = bulletIt->getGlobalBounds();
+            // Daño a Pac
+            if (pacSprite.getGlobalBounds().intersects(bulletBounds) && pacHP > 0) {
+                pacHP -= 20;
+                bulletIt = bullets.erase(bulletIt);
+                continue;
+            }
+            // Daño a Goals
+            for (auto goalIt = goals.begin(); goalIt != goals.end(); ++goalIt) {
+                if (goalIt->sprite.getGlobalBounds().intersects(bulletBounds) && goalIt->hp > 0) {
+                    goalIt->hp -= 20;
+                    bulletIt = bullets.erase(bulletIt);
+                    if (goalIt->hp <= 0) {
+                        goals.erase(goalIt);
+                    }
+                    bulletRemoved = true;
                     break;
                 }
             }
-            if (!exists) {
-                GoalObj obj;
-                obj.sprite.setTexture(goalTexture);
-                obj.sprite.setPosition(static_cast<float>(x), static_cast<float>(y));
-                obj.x = x;
-                obj.y = y;
-                goals.push_back(obj);
-                goalSpawnClock.restart();
-            }
+            if (!bulletRemoved) ++bulletIt;
         }
 
         // --- Renderizado ---
@@ -489,7 +557,7 @@ int main() {
             window.draw(player);
         for (const auto& bullet : bullets)
             window.draw(bullet);
-        if (blinkyMoving) // Solo dibujar Blinky cuando está activo
+        if (blinkyMoving)
             window.draw(blinkySprite);
         if (inkyMoving)
             window.draw(inkySprite);
@@ -498,8 +566,41 @@ int main() {
         if (pinkyActive && !pinkyPostCycleDelay)
             window.draw(pinkySprite);
         window.draw(pacSprite);
-        for (const auto& g : goals)
+        for (const auto& g : goals) {
             window.draw(g.sprite);
+            // DEBUG: dibujar el hitbox de cada goal
+            sf::RectangleShape rect;
+            rect.setPosition(g.sprite.getGlobalBounds().left, g.sprite.getGlobalBounds().top);
+            rect.setSize(sf::Vector2f(g.sprite.getGlobalBounds().width, g.sprite.getGlobalBounds().height));
+            rect.setFillColor(sf::Color::Transparent);
+            rect.setOutlineColor(sf::Color::Red);
+            rect.setOutlineThickness(1);
+            window.draw(rect);
+        }
+        // DEBUG: dibujar el hitbox de Pac
+        sf::RectangleShape pacRect;
+        pacRect.setPosition(pacSprite.getGlobalBounds().left, pacSprite.getGlobalBounds().top);
+        pacRect.setSize(sf::Vector2f(pacSprite.getGlobalBounds().width, pacSprite.getGlobalBounds().height));
+        pacRect.setFillColor(sf::Color::Transparent);
+        pacRect.setOutlineColor(sf::Color::Green);
+        pacRect.setOutlineThickness(1);
+        window.draw(pacRect);
+        // Mostrar HP de Pacman
+        static sf::Font font;
+        static bool fontLoaded = false;
+        if (!fontLoaded) {
+            font.loadFromFile("assets/fonts/AngelicWar.ttf");
+            fontLoaded = true;
+        }
+        sf::Text pacHpText;
+        pacHpText.setFont(font);
+        pacHpText.setString("PAC HP: " + std::to_string(pacHP));
+        pacHpText.setCharacterSize(28);
+        pacHpText.setFillColor(sf::Color::Yellow);
+        pacHpText.setOutlineColor(sf::Color::Black);
+        pacHpText.setOutlineThickness(2);
+        pacHpText.setPosition(20, 20);
+        window.draw(pacHpText);
         window.display();
     }
     return 0;
