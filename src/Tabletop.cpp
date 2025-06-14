@@ -202,6 +202,21 @@ int main()
     sf::Clock shootClock;
     std::vector<sf::Clock> enemyShootClocks(numEnemies); // Delay individual de disparo
 
+    // --- Cargar fuente para Game Over ---
+    sf::Font gameOverFont;
+    if (!gameOverFont.loadFromFile("assets/fonts/AngelicWar.ttf")) {
+        return -1;
+    }
+    sf::Text gameOverText;
+    gameOverText.setFont(gameOverFont);
+    gameOverText.setString("GAME OVER");
+    gameOverText.setCharacterSize(90);
+    gameOverText.setFillColor(sf::Color::Red);
+    // Centrar el texto
+    sf::FloatRect textRect = gameOverText.getLocalBounds();
+    gameOverText.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
+    gameOverText.setPosition(400, 400);
+
     while (window.isOpen())
     {
         sf::Event event;
@@ -210,10 +225,10 @@ int main()
                 window.close();
 
         if (gameState == GameState::GameOver) {
-            // Aquí podrías mostrar pantalla de Game Over
-            // window.clear();
-            // ...dibuja mensaje de Game Over...
-            // window.display();
+            window.clear();
+            window.draw(fondo);
+            window.draw(gameOverText);
+            window.display();
             continue;
         }
 
