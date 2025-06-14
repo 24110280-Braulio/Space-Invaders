@@ -52,7 +52,7 @@ int main() {
     bool blinkyMoving = false;
     bool blinkyVisible = true;
     sf::Clock blinkyTimer;
-    float blinkyInterval = 5.0f;
+    float blinkyInterval = 8.0f;
 
     // --- Inky (Enemigo animado) ---
     sf::Texture inkyLTexture, inkyRTexture;
@@ -65,7 +65,7 @@ int main() {
     bool inkyMoving = false;
     int inkyState = 0; // 0: quieto, 1: moviéndose
     sf::Clock inkyTimer, inkyAppearTimer;
-    float inkyInterval = 5.0f;
+    float inkyInterval = 10.0f;
 
     // --- Clayd (Enemigo animado) ---
     sf::Texture claydLTexture, claydRTexture;
@@ -77,9 +77,58 @@ int main() {
     int claydDirectionFlag = 0; // 0: izq->der, 1: der->izq
     bool claydMoving = false;
     sf::Clock claydTimer, claydAppearTimer;
-    float claydInterval = 5.0f;
+    float claydInterval = 7.0f;
     int claydState = 0; // 0: Blinky, 1: Inky
     std::srand(static_cast<unsigned>(std::time(nullptr)));
+
+    // --- Pinky (Enemigo animado, lógica propia) ---
+    sf::Texture pinkyLTexture, pinkyRTexture;
+    pinkyLTexture.loadFromFile("assets/images/Boss2nd/PinkyL.png");
+    pinkyRTexture.loadFromFile("assets/images/Boss2nd/PinkyR.png");
+    sf::Sprite pinkySprite(pinkyRTexture);
+    pinkySprite.setPosition(0, 674); // Altura 674 Y
+    float pinkySpeed = 200.0f;
+    int pinkyState = 0;
+    bool pinkyActive = false;
+    sf::Clock pinkyDelayClock;
+    sf::Clock pinkyPostCycleClock;
+    bool pinkyPostCycleDelay = false;
+
+    // --- Pac (Jefe, estado 0) ---
+    sf::Texture pacLTexture, pacRTexture;
+    pacLTexture.loadFromFile("assets/images/Boss2nd/PACmove2 (Left).png");
+    pacRTexture.loadFromFile("assets/images/Boss2nd/PACmove2 (Right).png");
+    std::vector<sf::Texture> pacRFrames(2), pacLFrames(2);
+    pacRFrames[0].loadFromFile("assets/images/Boss2nd/PACmove2 (Right).png");
+    pacRFrames[1].loadFromFile("assets/images/Boss2nd/PACmove3 (Right).png");
+    pacLFrames[0].loadFromFile("assets/images/Boss2nd/PACmove2 (Left).png");
+    pacLFrames[1].loadFromFile("assets/images/Boss2nd/PACmove3 (Left).png");
+    // Sprites up/down para estado de hambre
+    std::vector<sf::Texture> pacUFrames(2), pacDFrames(2);
+    pacUFrames[0].loadFromFile("assets/images/Boss2nd/PACmove2 (Up).png");
+    pacUFrames[1].loadFromFile("assets/images/Boss2nd/PACmove3 (Up).png");
+    pacDFrames[0].loadFromFile("assets/images/Boss2nd/PACmove2 (Down).png");
+    pacDFrames[1].loadFromFile("assets/images/Boss2nd/PACmove3 (Down).png");
+    sf::Sprite pacSprite(pacRTexture);
+    pacSprite.setPosition(400, 0);
+    float pacSpeed = 600.0f;
+    float pacHungrySpeed = 1000.0f;
+    int pacDirection = (std::rand() % 2 == 0) ? 0 : 1; // 0: derecha, 1: izquierda
+    int pacState = 0;
+    int pacAnimFrame = 0;
+    float pacAnimTime = 0.0f;
+    float pacAnimInterval = 0.15f;
+    bool pacHungryDescending = false;
+
+    // --- Generador de Goals (mecánica de GeneradorBF2.cpp) ---
+    sf::Texture goalTexture;
+    goalTexture.loadFromFile("assets/images/Boss2nd/Goal.png");
+    struct GoalObj {
+        sf::Sprite sprite;
+        int x, y;
+    };
+    std::vector<GoalObj> goals;
+    sf::Clock goalSpawnClock;
 
     sf::Clock clock;
     bool canShoot = true;
@@ -249,6 +298,189 @@ int main() {
             }
         }
 
+        // --- Pinky: lógica de movimiento por estados personalizados (de Pinky.cpp) ---
+        if (!pinkyActive) {
+            if (pinkyDelayClock.getElapsedTime().asSeconds() >= 6.0f) {
+                pinkyActive = true;
+            }
+        }
+        if (pinkyActive && !pinkyPostCycleDelay) {
+            switch (pinkyState) {
+                case 0: // Izquierda a derecha hasta X=300
+                    pinkySprite.setTexture(pinkyRTexture);
+                    pinkySprite.move(pinkySpeed * deltaTime, 0);
+                    pinkySprite.setPosition(pinkySprite.getPosition().x, 674);
+                    if (pinkySprite.getPosition().x >= 300) {
+                        pinkySprite.setPosition(300, 674);
+                        pinkyState = 1;
+                    }
+                    break;
+                case 1: // Derecha a izquierda desde 300 hasta salir
+                    pinkySprite.setTexture(pinkyLTexture);
+                    pinkySprite.move(-pinkySpeed * deltaTime, 0);
+                    pinkySprite.setPosition(pinkySprite.getPosition().x, 674);
+                    if (pinkySprite.getPosition().x + pinkySprite.getGlobalBounds().width < 0) {
+                        pinkySprite.setPosition(800 - pinkySprite.getGlobalBounds().width, 674);
+                        pinkyState = 2;
+                    }
+                    break;
+                case 2: // Derecha a izquierda hasta X=500
+                    pinkySprite.setTexture(pinkyLTexture);
+                    pinkySprite.move(-pinkySpeed * deltaTime, 0);
+                    pinkySprite.setPosition(pinkySprite.getPosition().x, 674);
+                    if (pinkySprite.getPosition().x <= 500) {
+                        pinkySprite.setPosition(500, 674);
+                        pinkyState = 3;
+                    }
+                    break;
+                case 3: // Izquierda a derecha desde 500 hasta salir
+                    pinkySprite.setTexture(pinkyRTexture);
+                    pinkySprite.move(pinkySpeed * deltaTime, 0);
+                    pinkySprite.setPosition(pinkySprite.getPosition().x, 674);
+                    if (pinkySprite.getPosition().x > 800) {
+                        pinkySprite.setPosition(0, 674);
+                        pinkyState = 0;
+                        pinkyPostCycleDelay = true;
+                        pinkyPostCycleClock.restart();
+                    }
+                    break;
+            }
+        }
+
+        // --- Pac: lógica de movimiento y animación estado 0 y modo hambriento (1) ---
+        pacAnimTime += deltaTime;
+        if (pacAnimTime >= pacAnimInterval) {
+            pacAnimFrame = (pacAnimFrame + 1) % 2;
+            pacAnimTime = 0.0f;
+        }
+        static bool pacGoingDown = true;
+        // Colisión Pac-Goal: activa modo hambriento y elimina el Goal tocado
+        if (pacState == 0) {
+            for (auto it = goals.begin(); it != goals.end(); ) {
+                if (pacSprite.getGlobalBounds().intersects(it->sprite.getGlobalBounds())) {
+                    pacState = 1;
+                    pacHungryDescending = false;
+                    it = goals.erase(it);
+                    break;
+                } else {
+                    ++it;
+                }
+            }
+        }
+        if (pacState == 0) {
+            // Determinar si Pac debe cambiar a modo hambriento
+            // (Ejemplo: aquí puedes poner una condición para activar el modo hambriento)
+            // if (algunaCondicion) pacState = 1;
+            if (pacGoingDown) {
+                if (pacSprite.getPosition().y < 550) {
+                    // Baja
+                    if (pacDirection == 0) {
+                        pacSprite.setTexture(pacRFrames[pacAnimFrame]);
+                        pacSprite.move(pacSpeed * deltaTime, 0);
+                        if (pacSprite.getPosition().x >= 800 - pacSprite.getGlobalBounds().width) {
+                            pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y + 40);
+                            pacDirection = 1;
+                        }
+                    } else {
+                        pacSprite.setTexture(pacLFrames[pacAnimFrame]);
+                        pacSprite.move(-pacSpeed * deltaTime, 0);
+                        if (pacSprite.getPosition().x <= 0) {
+                            pacSprite.setPosition(0, pacSprite.getPosition().y + 40);
+                            pacDirection = 0;
+                        }
+                    }
+                    if (pacSprite.getPosition().y >= 550) {
+                        pacSprite.setPosition(pacSprite.getPosition().x, 550);
+                        pacGoingDown = false;
+                    }
+                }
+            } else {
+                // Sube
+                if (pacDirection == 0) {
+                    pacSprite.setTexture(pacRFrames[pacAnimFrame]);
+                    pacSprite.move(pacSpeed * deltaTime, 0);
+                    if (pacSprite.getPosition().x >= 800 - pacSprite.getGlobalBounds().width) {
+                        pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y - 40);
+                        pacDirection = 1;
+                    }
+                } else {
+                    pacSprite.setTexture(pacLFrames[pacAnimFrame]);
+                    pacSprite.move(-pacSpeed * deltaTime, 0);
+                    if (pacSprite.getPosition().x <= 0) {
+                        pacSprite.setPosition(0, pacSprite.getPosition().y - 40);
+                        pacDirection = 0;
+                    }
+                }
+                if (pacSprite.getPosition().y <= 0) {
+                    pacSprite.setPosition(pacSprite.getPosition().x, 0);
+                    pacGoingDown = true;
+                }
+            }
+        } else if (pacState == 1) {
+            // Modo hambriento: usar sprites up/down
+            if (!pacHungryDescending) {
+                // Baja rápidamente hasta 800 Y
+                pacSprite.setTexture(pacDFrames[pacAnimFrame]);
+                pacSprite.move(0, pacHungrySpeed * deltaTime);
+                if (pacSprite.getPosition().y >= 800) {
+                    pacSprite.setPosition(pacSprite.getPosition().x, 800);
+                    pacHungryDescending = true;
+                    // Dirección aleatoria al llegar abajo
+                    pacDirection = (std::rand() % 2 == 0) ? 0 : 1;
+                }
+            } else {
+                // Rebota izquierda/derecha en la base
+                if (pacDirection == 0) {
+                    pacSprite.setTexture(pacRFrames[pacAnimFrame]);
+                    pacSprite.move(pacHungrySpeed * deltaTime, 0);
+                    if (pacSprite.getPosition().x >= 800 - pacSprite.getGlobalBounds().width) {
+                        pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y);
+                        pacDirection = 1;
+                    }
+                } else {
+                    pacSprite.setTexture(pacLFrames[pacAnimFrame]);
+                    pacSprite.move(-pacHungrySpeed * deltaTime, 0);
+                    if (pacSprite.getPosition().x <= 0) {
+                        pacSprite.setPosition(0, pacSprite.getPosition().y);
+                        pacDirection = 0;
+                    }
+                }
+                // Sube si llega a 0 Y
+                if (pacSprite.getPosition().y > 0) {
+                    pacSprite.setTexture(pacUFrames[pacAnimFrame]);
+                    pacSprite.move(0, -pacHungrySpeed * deltaTime * 0.5f);
+                    if (pacSprite.getPosition().y <= 0) {
+                        pacSprite.setPosition(pacSprite.getPosition().x, 0);
+                        pacState = 0;
+                        pacHungryDescending = false;
+                        pacGoingDown = true;
+                    }
+                }
+            }
+        }
+
+        // --- Generador de Goals: generación cada 2 segundos si hay menos de 5 y sin repetir coordenadas ---
+        if (goalSpawnClock.getElapsedTime().asSeconds() >= 2.0f && goals.size() < 5) {
+            int x = 32 + std::rand() % (768 - 32 + 1);
+            int y = 32 + std::rand() % (500 - 32 + 1);
+            bool exists = false;
+            for (const auto& g : goals) {
+                if (g.x == x && g.y == y) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                GoalObj obj;
+                obj.sprite.setTexture(goalTexture);
+                obj.sprite.setPosition(static_cast<float>(x), static_cast<float>(y));
+                obj.x = x;
+                obj.y = y;
+                goals.push_back(obj);
+                goalSpawnClock.restart();
+            }
+        }
+
         // --- Renderizado ---
         window.clear();
         window.draw(fondo);
@@ -263,6 +495,11 @@ int main() {
             window.draw(inkySprite);
         if (claydMoving)
             window.draw(claydSprite);
+        if (pinkyActive && !pinkyPostCycleDelay)
+            window.draw(pinkySprite);
+        window.draw(pacSprite);
+        for (const auto& g : goals)
+            window.draw(g.sprite);
         window.display();
     }
     return 0;
