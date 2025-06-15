@@ -94,7 +94,7 @@ int main() {
                 bossAppeared = true;
             }
         }
-        boss.update(deltaTime);
+        boss.update(deltaTime, sf::Vector2f(0,0));
 
         window.clear();
         if (!bossAppeared) {

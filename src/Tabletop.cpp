@@ -605,7 +605,7 @@ int main()
         }
         if (bossAppeared) {
             float bossDeltaTime = bossClock.restart().asSeconds();
-            boss.update(bossDeltaTime);
+            boss.update(bossDeltaTime, player.getPosition());
         }
 
         window.clear();

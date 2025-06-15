@@ -19,6 +19,17 @@ Boss::Boss(const sf::Vector2f& startPos)
     laser2.setPosition(startPos.x + 80, startPos.y + 80);
 }
 
+// --- NUEVO: variables para ataque especial y alternancia ---
+bool specialAttackActive = false;
+float specialAttackTimer = 0.0f;
+float specialAttackDuration = 30.0f; // Duración total del ataque especial
+float specialAttackCooldown = 20.0f; // Tiempo entre ataques especiales (ataque normal)
+float specialAttackElapsed = 0.0f;
+bool specialLaserOn = false;
+float specialLaserTimer = 0.0f;
+float specialLaserInterval = 2.0f; // Cada 2 segundos se apaga/prende
+bool inNormalAttack = true;
+
 void Boss::appear() {
     active = true;
 }
@@ -36,7 +47,7 @@ bool Boss::isActive() const {
     return active;
 }
 
-void Boss::update(float deltaTime) {
+void Boss::update(float deltaTime, const sf::Vector2f& playerPos) {
     if (!active) return;
     animTime += deltaTime;
     moveTimer += deltaTime * moveSpeed;
@@ -45,14 +56,87 @@ void Boss::update(float deltaTime) {
         useA = !useA;
         animTime = 0;
     }
-    // Movimiento suave en X e Y (oscilatorio)
-    float x = originalPos.x + moveRadiusX * sin(moveTimer);
-    float y = originalPos.y + moveRadiusY * cos(moveTimer * 0.7f);
+    // Movimiento mejorado: jefe siempre visible y recorre toda la pantalla
+    float bossWidth = spriteA.getGlobalBounds().width;
+    float minX = 0;
+    float maxX = 800 - bossWidth;
+    float x = minX + (maxX - minX) * (0.5f + 0.5f * sin(moveTimer));
+    float y = 60 + 40 * sin(moveTimer * 0.7f) + 20 * cos(moveTimer * 1.3f);
+    if (y < 20) y = 20;
+    if (y > 200) y = 200;
     spriteA.setPosition(x, y);
     spriteB.setPosition(x, y);
     laser1.setPosition(x + 30, y + 80);
     laser2.setPosition(x + 80, y + 80);
-    // --- Disparo del jefe ---
+
+    // --- Alternancia entre ataques ---
+    if (inNormalAttack) {
+        specialAttackElapsed += deltaTime;
+        if (specialAttackElapsed >= specialAttackCooldown) {
+            inNormalAttack = false;
+            specialAttackActive = true;
+            specialAttackTimer = 0.0f;
+            specialLaserOn = true;
+            specialLaserTimer = 0.0f;
+            specialAttackElapsed = 0.0f;
+            lasers.clear();
+        }
+    }
+    if (specialAttackActive) {
+        specialAttackTimer += deltaTime;
+        specialLaserTimer += deltaTime;
+        // Apagar/prender columna cada 2 segundos
+        if (specialLaserTimer >= specialLaserInterval) {
+            specialLaserOn = !specialLaserOn;
+            specialLaserTimer = 0.0f;
+        }
+        // El jefe sigue al jugador en X (pero con velocidad limitada, no copia exacto)
+        float bossWidth = spriteA.getGlobalBounds().width;
+        float currentX = spriteA.getPosition().x;
+        float targetX = playerPos.x - bossWidth / 2 + 16; // Centrar jefe respecto al jugador
+        // Limitar para que no salga de la pantalla
+        if (targetX < 0) targetX = 0;
+        if (targetX > 800 - bossWidth) targetX = 800 - bossWidth;
+        float speed = 3.5f; // Velocidad de seguimiento
+        if (std::abs(targetX - currentX) > 1.0f) {
+            if (targetX > currentX)
+                currentX += speed;
+            else
+                currentX -= speed;
+            // Clamp para no pasarse
+            if ((speed > 0 && currentX > targetX) || (speed < 0 && currentX < targetX))
+                currentX = targetX;
+        }
+        float y = spriteA.getPosition().y; // Mantener Y
+        spriteA.setPosition(currentX, y);
+        spriteB.setPosition(currentX, y);
+        // Columna de laser justo debajo del jefe
+        if (specialLaserOn) {
+            float laserX = currentX + bossWidth / 2 - laserTexture1.getSize().x / 2;
+            float laserY = y + spriteA.getGlobalBounds().height;
+            lasers.clear();
+            sf::Sprite l1(laserTexture1);
+            l1.setPosition(laserX, laserY);
+            lasers.push_back(l1);
+            float laser2Y = laserY + laserTexture1.getSize().y;
+            while (laser2Y < 800) {
+                sf::Sprite l2(laserTexture2);
+                l2.setPosition(laserX, laser2Y);
+                lasers.push_back(l2);
+                laser2Y += laserTexture2.getSize().y;
+            }
+        } else {
+            lasers.clear(); // Apagar columna
+        }
+        if (specialAttackTimer >= specialAttackDuration) {
+            specialAttackActive = false;
+            inNormalAttack = true;
+            specialAttackElapsed = 0.0f;
+            lasers.clear();
+        }
+        return; // No disparar normal durante ataque especial
+    }
+    // --- Disparo normal del jefe (como enemigos normales) ---
     laserTimer += deltaTime;
     if (laserTimer >= laserCooldown) {
         shoot();
@@ -60,16 +144,14 @@ void Boss::update(float deltaTime) {
     }
     // Animación de los lasers activos
     for (auto& l : lasers) {
-        // Efecto de parpadeo/animación usando Laser1 y Laser2
         float anim = fmod(animTime, 0.3f);
         if (anim < 0.15f) {
             l.setTexture(laserTexture1);
         } else {
             l.setTexture(laserTexture2);
         }
-        l.move(0, 3.0f); // velocidad hacia abajo
+        l.move(0, 3.0f);
     }
-    // Eliminar lasers fuera de pantalla
     lasers.erase(std::remove_if(lasers.begin(), lasers.end(), [](const sf::Sprite& l){
         return l.getPosition().y > 800;
     }), lasers.end());

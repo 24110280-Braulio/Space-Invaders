@@ -5,7 +5,7 @@
 class Boss {
 public:
     Boss(const sf::Vector2f& startPos);
-    void update(float deltaTime);
+    void update(float deltaTime, const sf::Vector2f& playerPos);
     void draw(sf::RenderWindow& window);
     void appear();
     bool isActive() const;
@@ -35,4 +35,14 @@ private:
     std::vector<sf::Sprite> lasers;
     float laserCooldown; // tiempo entre disparos
     float laserTimer;    // temporizador
+
+    // --- Ataque especial ---
+    bool specialAttackActive = false;
+    float specialAttackTimer = 0.0f;
+    float specialAttackDuration = 6.0f;
+    float specialAttackCooldown = 8.0f;
+    float specialAttackElapsed = 0.0f;
+    bool specialLaserOn = false;
+    float specialLaserTimer = 0.0f;
+    float specialLaserInterval = 2.0f;
 };
