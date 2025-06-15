@@ -253,6 +253,20 @@ int main()
 
     bool allEnemiesDefeated = false;
 
+    // --- Barra de vida del jefe ---
+    sf::Texture bossHpTextures[5];
+    bossHpTextures[0].loadFromFile("assets/images/VidaJefe1.png");
+    bossHpTextures[1].loadFromFile("assets/images/VidaJefe2.png");
+    bossHpTextures[2].loadFromFile("assets/images/VidaJefe3.png");
+    bossHpTextures[3].loadFromFile("assets/images/VidaJefe4.png");
+    bossHpTextures[4].loadFromFile("assets/images/VidaJefe5.png");
+    sf::Sprite bossHpBar;
+    bossHpBar.setTexture(bossHpTextures[0]);
+    bossHpBar.setScale(400.0f / bossHpBar.getTexture()->getSize().x, 32.0f / bossHpBar.getTexture()->getSize().y);
+    bossHpBar.setPosition(200, 20); // Centrado y con margen superior
+    int bossMaxHp = 400;
+    int bossHp = bossMaxHp;
+
     while (window.isOpen())
     {
         sf::Event event;
@@ -632,6 +646,8 @@ int main()
         }
         if (bossAppeared && boss.isActive()) {
             boss.draw(window);
+            // Dibujar barra de vida del jefe
+            window.draw(bossHpBar);
         }
         if (showBossText) {
             window.draw(bossText);

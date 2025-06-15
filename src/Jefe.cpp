@@ -90,29 +90,19 @@ void Boss::update(float deltaTime, const sf::Vector2f& playerPos) {
             specialLaserOn = !specialLaserOn;
             specialLaserTimer = 0.0f;
         }
-        // El jefe sigue al jugador en X (pero con velocidad limitada, no copia exacto)
+        // Movimiento normal por el mapa (NO seguir al jugador)
         float bossWidth = spriteA.getGlobalBounds().width;
-        float currentX = spriteA.getPosition().x;
-        float targetX = playerPos.x - bossWidth / 2 + 16; // Centrar jefe respecto al jugador
-        // Limitar para que no salga de la pantalla
-        if (targetX < 0) targetX = 0;
-        if (targetX > 800 - bossWidth) targetX = 800 - bossWidth;
-        float speed = 3.5f; // Velocidad de seguimiento
-        if (std::abs(targetX - currentX) > 1.0f) {
-            if (targetX > currentX)
-                currentX += speed;
-            else
-                currentX -= speed;
-            // Clamp para no pasarse
-            if ((speed > 0 && currentX > targetX) || (speed < 0 && currentX < targetX))
-                currentX = targetX;
-        }
-        float y = spriteA.getPosition().y; // Mantener Y
-        spriteA.setPosition(currentX, y);
-        spriteB.setPosition(currentX, y);
+        float minX = 0;
+        float maxX = 800 - bossWidth;
+        float x = minX + (maxX - minX) * (0.5f + 0.5f * sin(moveTimer));
+        float y = 60 + 40 * sin(moveTimer * 0.7f) + 20 * cos(moveTimer * 1.3f);
+        if (y < 20) y = 20;
+        if (y > 200) y = 200;
+        spriteA.setPosition(x, y);
+        spriteB.setPosition(x, y);
         // Columna de laser justo debajo del jefe
         if (specialLaserOn) {
-            float laserX = currentX + bossWidth / 2 - laserTexture1.getSize().x / 2;
+            float laserX = x + bossWidth / 2 - laserTexture1.getSize().x / 2;
             float laserY = y + spriteA.getGlobalBounds().height;
             lasers.clear();
             sf::Sprite l1(laserTexture1);
