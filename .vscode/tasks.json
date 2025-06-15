@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Compilar Tabletop.cpp",
+			"command": "g++ -Iinclude -o bin/Tabletop.exe src/Tabletop.cpp",
+			"group": "build",
+			"problemMatcher": [
+				"$gcc"
+			]
+		}
+	]
+}
