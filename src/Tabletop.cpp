@@ -239,15 +239,15 @@ int main()
     bool showBossText = false;
 
     sf::Font bossFont;
-    if (!bossFont.loadFromFile("assets/fonts/AngelicWar.ttf")) {
+    if (!bossFont.loadFromFile("assets/fonts/tiny-and-chunky.ttf")) {
         // Si falla, usar la fuente por defecto
     }
     sf::Text bossTimerText;
     bossTimerText.setFont(bossFont);
-    bossTimerText.setCharacterSize(60);
+    bossTimerText.setCharacterSize(40); // Tamaño reducido
     bossTimerText.setFillColor(sf::Color::Yellow);
     bossTimerText.setStyle(sf::Text::Bold);
-    bossTimerText.setPosition(200, 350);
+    bossTimerText.setPosition(200, 200); // Más arriba
     bool showBossTimer = false;
     float bossCountdown = 0;
 
@@ -588,13 +588,14 @@ int main()
             bossDelayClock.restart();
             bossReadyToAppear = true;
             showBossTimer = true;
+            bossCountdown = 10.0f; // Cambiar a 10 segundos
         }
         if (bossReadyToAppear && !bossAppeared) {
-            bossCountdown = 5.0f - bossDelayClock.getElapsedTime().asSeconds();
+            bossCountdown = 10.0f - bossDelayClock.getElapsedTime().asSeconds();
             if (bossCountdown < 0) bossCountdown = 0;
             bossTimerText.setString("BOSS en: " + std::to_string((int)bossCountdown) + "s");
             showBossTimer = true;
-            if (bossDelayClock.getElapsedTime().asSeconds() >= 5.0f) {
+            if (bossDelayClock.getElapsedTime().asSeconds() >= 10.0f) { // Cambiar a 10 segundos
                 boss.appear();
                 bossAppeared = true;
                 bossClock.restart();
