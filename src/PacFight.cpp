@@ -52,7 +52,7 @@ int main() {
     bool blinkyMoving = false;
     bool blinkyVisible = true;
     sf::Clock blinkyTimer;
-    float blinkyInterval = 8.0f;
+    float blinkyInterval = 3.0f; // antes 8.0f, ahora más rápido
 
     // --- Inky (Enemigo animado) ---
     sf::Texture inkyLTexture, inkyRTexture;
@@ -65,7 +65,7 @@ int main() {
     bool inkyMoving = false;
     int inkyState = 0; // 0: quieto, 1: moviéndose
     sf::Clock inkyTimer, inkyAppearTimer;
-    float inkyInterval = 10.0f;
+    float inkyInterval = 4.0f; // antes 10.0f, ahora más rápido
 
     // --- Clayd (Enemigo animado) ---
     sf::Texture claydLTexture, claydRTexture;
@@ -77,7 +77,7 @@ int main() {
     int claydDirectionFlag = 0; // 0: izq->der, 1: der->izq
     bool claydMoving = false;
     sf::Clock claydTimer, claydAppearTimer;
-    float claydInterval = 7.0f;
+    float claydInterval = 2.5f; // antes 7.0f, ahora más rápido
     int claydState = 0; // 0: Blinky, 1: Inky
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
@@ -112,7 +112,7 @@ int main() {
     sf::Sprite pacSprite(pacRTexture);
     pacSprite.setPosition(400, 0);
     float pacSpeed = 600.0f;
-    float pacHungrySpeed = 1000.0f;
+    float pacHungrySpeed = 1400.0f; // antes 1000.0f
     int pacDirection = (std::rand() % 2 == 0) ? 0 : 1; // 0: derecha, 1: izquierda
     int pacState = 0;
     int pacAnimFrame = 0;
@@ -232,15 +232,10 @@ int main() {
                 playerHP.takeDamage(20);
                 damaged = true;
             }
-            // Pac (solo si no está ascendiendo)
+            // Pac (daño siempre que hay contacto)
             if (pacSprite.getGlobalBounds().intersects(playerBounds)) {
-                if (
-                    (pacState == 0 && pacGoingDown) ||
-                    (pacState == 1 && pacHungryDescending && pacSprite.getPosition().y == 800)
-                ) {
-                    playerHP.takeDamage(20);
-                    damaged = true;
-                }
+                playerHP.takeDamage(20);
+                damaged = true;
             }
         }
         // --- Actualizar estado de invulnerabilidad y sprite de vida ---
@@ -287,8 +282,8 @@ int main() {
         }
         if (inkyMoving) {
             if (inkyState == 0) {
-                // Espera 2 segundos antes de moverse
-                if (inkyAppearTimer.getElapsedTime().asSeconds() >= 2.0f) {
+                // Espera 0.5 segundos antes de moverse (antes 2.0f)
+                if (inkyAppearTimer.getElapsedTime().asSeconds() >= 0.5f) {
                     inkyState = 1;
                 }
             } else if (inkyState == 1) {
@@ -344,8 +339,8 @@ int main() {
                     claydTimer.restart();
                 }
             } else if (claydState == 1) { // Inky
-                if (claydAppearTimer.getElapsedTime().asSeconds() < 2.0f) {
-                    // Quieto 2 segundos
+                if (claydAppearTimer.getElapsedTime().asSeconds() < 0.5f) { // antes 2.0f
+                    // Quieto 0.5 segundos
                 } else {
                     float fastSpeed = 400.0f;
                     float dir = (claydDirectionFlag == 0) ? 1.f : -1.f;
@@ -365,7 +360,7 @@ int main() {
 
         // --- Pinky: lógica de movimiento por estados personalizados (de Pinky.cpp) ---
         if (!pinkyActive) {
-            if (pinkyDelayClock.getElapsedTime().asSeconds() >= 6.0f) {
+            if (pinkyDelayClock.getElapsedTime().asSeconds() >= 2.0f) { // antes 6.0f
                 pinkyActive = true;
             }
         }
@@ -411,6 +406,10 @@ int main() {
                     break;
             }
         }
+        if (pinkyPostCycleDelay && pinkyPostCycleClock.getElapsedTime().asSeconds() >= 1.0f) { // antes 3.0f
+            pinkyPostCycleDelay = false;
+            pinkyDelayClock.restart();
+        }
 
         // --- Pac: lógica de movimiento y animación estado 0 y modo hambriento (1) ---
         pacAnimTime += deltaTime;
@@ -418,107 +417,115 @@ int main() {
             pacAnimFrame = (pacAnimFrame + 1) % 2;
             pacAnimTime = 0.0f;
         }
-        // Colisión Pac-Goal: activa modo hambriento y elimina el Goal tocado
-        if (pacState == 0) {
-            for (auto it = goals.begin(); it != goals.end(); ) {
-                // Solo permitir daño si Pac está descendiendo (no ascendiendo)
-                if (pacGoingDown && pacSprite.getGlobalBounds().intersects(it->sprite.getGlobalBounds())) {
-                    pacState = 1;
-                    pacHungryDescending = false;
-                    it = goals.erase(it);
-                    break;
-                } else {
-                    ++it;
+        // Detener completamente a Pac si su HP llega a 0
+        if (pacHP <= 0) {
+            // No mover ni animar Pac
+            // Opcional: podrías cambiar el sprite a uno de "derrota" aquí
+        } else {
+            // Colisión Pac-Goal: activa modo hambriento y elimina el Goal tocado
+            if (pacState == 0) {
+                for (auto it = goals.begin(); it != goals.end(); ) {
+                    if (pacGoingDown && pacSprite.getGlobalBounds().intersects(it->sprite.getGlobalBounds())) {
+                        pacState = 1;
+                        pacHungryDescending = false;
+                        pacHP += 20;
+                        if (pacHP > 400) pacHP = 400;
+                        it = goals.erase(it);
+                        break;
+                    } else {
+                        ++it;
+                    }
                 }
             }
-        }
-        if (pacState == 0) {
-            // Determinar si Pac debe cambiar a modo hambriento
-            // (Ejemplo: aquí puedes poner una condición para activar el modo hambriento)
-            // if (algunaCondicion) pacState = 1;
-            if (pacGoingDown) {
-                if (pacSprite.getPosition().y < 550) {
-                    // Baja
+            if (pacState == 0) {
+                // Determinar si Pac debe cambiar a modo hambriento
+                // (Ejemplo: aquí puedes poner una condición para activar el modo hambriento)
+                // if (algunaCondicion) pacState = 1;
+                if (pacGoingDown) {
+                    if (pacSprite.getPosition().y < 550) {
+                        // Baja
+                        if (pacDirection == 0) {
+                            pacSprite.setTexture(pacRFrames[pacAnimFrame]);
+                            pacSprite.move(pacSpeed * deltaTime, 0);
+                            if (pacSprite.getPosition().x >= 800 - pacSprite.getGlobalBounds().width) {
+                                pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y + 40);
+                                pacDirection = 1;
+                            }
+                        } else {
+                            pacSprite.setTexture(pacLFrames[pacAnimFrame]);
+                            pacSprite.move(-pacSpeed * deltaTime, 0);
+                            if (pacSprite.getPosition().x <= 0) {
+                                pacSprite.setPosition(0, pacSprite.getPosition().y + 40);
+                                pacDirection = 0;
+                            }
+                        }
+                        if (pacSprite.getPosition().y >= 550) {
+                            pacSprite.setPosition(pacSprite.getPosition().x, 550);
+                            pacGoingDown = false;
+                        }
+                    }
+                } else {
+                    // Sube
                     if (pacDirection == 0) {
                         pacSprite.setTexture(pacRFrames[pacAnimFrame]);
                         pacSprite.move(pacSpeed * deltaTime, 0);
                         if (pacSprite.getPosition().x >= 800 - pacSprite.getGlobalBounds().width) {
-                            pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y + 40);
+                            pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y - 40);
                             pacDirection = 1;
                         }
                     } else {
                         pacSprite.setTexture(pacLFrames[pacAnimFrame]);
                         pacSprite.move(-pacSpeed * deltaTime, 0);
                         if (pacSprite.getPosition().x <= 0) {
-                            pacSprite.setPosition(0, pacSprite.getPosition().y + 40);
+                            pacSprite.setPosition(0, pacSprite.getPosition().y - 40);
                             pacDirection = 0;
                         }
                     }
-                    if (pacSprite.getPosition().y >= 550) {
-                        pacSprite.setPosition(pacSprite.getPosition().x, 550);
-                        pacGoingDown = false;
-                    }
-                }
-            } else {
-                // Sube
-                if (pacDirection == 0) {
-                    pacSprite.setTexture(pacRFrames[pacAnimFrame]);
-                    pacSprite.move(pacSpeed * deltaTime, 0);
-                    if (pacSprite.getPosition().x >= 800 - pacSprite.getGlobalBounds().width) {
-                        pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y - 40);
-                        pacDirection = 1;
-                    }
-                } else {
-                    pacSprite.setTexture(pacLFrames[pacAnimFrame]);
-                    pacSprite.move(-pacSpeed * deltaTime, 0);
-                    if (pacSprite.getPosition().x <= 0) {
-                        pacSprite.setPosition(0, pacSprite.getPosition().y - 40);
-                        pacDirection = 0;
-                    }
-                }
-                if (pacSprite.getPosition().y <= 0) {
-                    pacSprite.setPosition(pacSprite.getPosition().x, 0);
-                    pacGoingDown = true;
-                }
-            }
-        } else if (pacState == 1) {
-            // Modo hambriento: usar sprites up/down
-            if (!pacHungryDescending) {
-                // Baja rápidamente hasta 800 Y
-                pacSprite.setTexture(pacDFrames[pacAnimFrame]);
-                pacSprite.move(0, pacHungrySpeed * deltaTime);
-                if (pacSprite.getPosition().y >= 800) {
-                    pacSprite.setPosition(pacSprite.getPosition().x, 800);
-                    pacHungryDescending = true;
-                    // Dirección aleatoria al llegar abajo
-                    pacDirection = (std::rand() % 2 == 0) ? 0 : 1;
-                }
-            } else {
-                // Rebota izquierda/derecha en la base
-                if (pacDirection == 0) {
-                    pacSprite.setTexture(pacRFrames[pacAnimFrame]);
-                    pacSprite.move(pacHungrySpeed * deltaTime, 0);
-                    if (pacSprite.getPosition().x >= 800 - pacSprite.getGlobalBounds().width) {
-                        pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y);
-                        pacDirection = 1;
-                    }
-                } else {
-                    pacSprite.setTexture(pacLFrames[pacAnimFrame]);
-                    pacSprite.move(-pacHungrySpeed * deltaTime, 0);
-                    if (pacSprite.getPosition().x <= 0) {
-                        pacSprite.setPosition(0, pacSprite.getPosition().y);
-                        pacDirection = 0;
-                    }
-                }
-                // Sube si llega a 0 Y
-                if (pacSprite.getPosition().y > 0) {
-                    pacSprite.setTexture(pacUFrames[pacAnimFrame]);
-                    pacSprite.move(0, -pacHungrySpeed * deltaTime * 0.5f);
                     if (pacSprite.getPosition().y <= 0) {
                         pacSprite.setPosition(pacSprite.getPosition().x, 0);
-                        pacState = 0;
-                        pacHungryDescending = false;
                         pacGoingDown = true;
+                    }
+                }
+            } else if (pacState == 1) {
+                // Modo hambriento: usar sprites up/down
+                if (!pacHungryDescending) {
+                    // Baja rápidamente hasta 800 Y
+                    pacSprite.setTexture(pacDFrames[pacAnimFrame]);
+                    pacSprite.move(0, pacHungrySpeed * deltaTime);
+                    if (pacSprite.getPosition().y >= 800) {
+                        pacSprite.setPosition(pacSprite.getPosition().x, 800);
+                        pacHungryDescending = true;
+                        // Dirección aleatoria al llegar abajo
+                        pacDirection = (std::rand() % 2 == 0) ? 0 : 1;
+                    }
+                } else {
+                    // Rebote izquierda/derecha en la base (más lento)
+                    float hungryBounceSpeed = 400.0f; // antes pacHungrySpeed, ahora más lento
+                    if (pacDirection == 0) {
+                        pacSprite.setTexture(pacRFrames[pacAnimFrame]);
+                        pacSprite.move(hungryBounceSpeed * deltaTime, 0);
+                        if (pacSprite.getPosition().x >= 800 - pacSprite.getGlobalBounds().width) {
+                            pacSprite.setPosition(800 - pacSprite.getGlobalBounds().width, pacSprite.getPosition().y);
+                            pacDirection = 1;
+                        }
+                    } else {
+                        pacSprite.setTexture(pacLFrames[pacAnimFrame]);
+                        pacSprite.move(-hungryBounceSpeed * deltaTime, 0);
+                        if (pacSprite.getPosition().x <= 0) {
+                            pacSprite.setPosition(0, pacSprite.getPosition().y);
+                            pacDirection = 0;
+                        }
+                    }
+                    // Sube si llega a 0 Y
+                    if (pacSprite.getPosition().y > 0) {
+                        pacSprite.setTexture(pacUFrames[pacAnimFrame]);
+                        pacSprite.move(0, -pacHungrySpeed * deltaTime * 0.5f);
+                        if (pacSprite.getPosition().y <= 0) {
+                            pacSprite.setPosition(pacSprite.getPosition().x, 0);
+                            pacState = 0;
+                            pacHungryDescending = false;
+                            pacGoingDown = true;
+                        }
                     }
                 }
             }
@@ -585,6 +592,43 @@ int main() {
         pacRect.setOutlineColor(sf::Color::Green);
         pacRect.setOutlineThickness(1);
         window.draw(pacRect);
+        // DEBUG: dibujar el hitbox de los fantasmas
+        if (blinkyMoving) {
+            sf::RectangleShape blinkyRect;
+            blinkyRect.setPosition(blinkySprite.getGlobalBounds().left, blinkySprite.getGlobalBounds().top);
+            blinkyRect.setSize(sf::Vector2f(blinkySprite.getGlobalBounds().width, blinkySprite.getGlobalBounds().height));
+            blinkyRect.setFillColor(sf::Color::Transparent);
+            blinkyRect.setOutlineColor(sf::Color::Magenta);
+            blinkyRect.setOutlineThickness(1);
+            window.draw(blinkyRect);
+        }
+        if (inkyMoving) {
+            sf::RectangleShape inkyRect;
+            inkyRect.setPosition(inkySprite.getGlobalBounds().left, inkySprite.getGlobalBounds().top);
+            inkyRect.setSize(sf::Vector2f(inkySprite.getGlobalBounds().width, inkySprite.getGlobalBounds().height));
+            inkyRect.setFillColor(sf::Color::Transparent);
+            inkyRect.setOutlineColor(sf::Color::Cyan);
+            inkyRect.setOutlineThickness(1);
+            window.draw(inkyRect);
+        }
+        if (claydMoving) {
+            sf::RectangleShape claydRect;
+            claydRect.setPosition(claydSprite.getGlobalBounds().left, claydSprite.getGlobalBounds().top);
+            claydRect.setSize(sf::Vector2f(claydSprite.getGlobalBounds().width, claydSprite.getGlobalBounds().height));
+            claydRect.setFillColor(sf::Color::Transparent);
+            claydRect.setOutlineColor(sf::Color(255, 165, 0)); // Naranja
+            claydRect.setOutlineThickness(1);
+            window.draw(claydRect);
+        }
+        if (pinkyActive && !pinkyPostCycleDelay) {
+            sf::RectangleShape pinkyRect;
+            pinkyRect.setPosition(pinkySprite.getGlobalBounds().left, pinkySprite.getGlobalBounds().top);
+            pinkyRect.setSize(sf::Vector2f(pinkySprite.getGlobalBounds().width, pinkySprite.getGlobalBounds().height));
+            pinkyRect.setFillColor(sf::Color::Transparent);
+            pinkyRect.setOutlineColor(sf::Color::White);
+            pinkyRect.setOutlineThickness(1);
+            window.draw(pinkyRect);
+        }
         // Mostrar HP de Pacman
         static sf::Font font;
         static bool fontLoaded = false;
