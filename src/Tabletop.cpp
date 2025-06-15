@@ -9,6 +9,8 @@
 #include "../include/Barrier.hpp"
 #include "../include/PlayerHealth.hpp"
 #include "../include/EnemyShooter.hpp"
+#include "../include/Jefe.hpp" // <-- Added include for Jefe
+#include <iostream> // <-- Added for debug output
 
 // --- Forward declarations for functions used in main ---
 void drawBarriers(sf::RenderWindow& window, std::vector<Barrier>& barreras);
@@ -216,6 +218,40 @@ int main()
     sf::FloatRect textRect = gameOverText.getLocalBounds();
     gameOverText.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
     gameOverText.setPosition(400, 400);
+
+    Boss boss({380, 60}); // Posición superior central
+    bool bossAppeared = false;
+    sf::Clock bossClock; // Reloj independiente para el boss
+    sf::Clock bossDelayClock; // Reloj para el retardo de aparición
+    bool bossReadyToAppear = false;
+
+    // --- Texto de aparición del boss ---
+    sf::Text bossText;
+    bossText.setFont(gameOverFont);
+    bossText.setString("BOSS!");
+    bossText.setCharacterSize(80);
+    bossText.setFillColor(sf::Color::Yellow);
+    bossText.setStyle(sf::Text::Bold);
+    bossText.setOutlineColor(sf::Color::Red);
+    bossText.setOutlineThickness(4);
+    bossText.setOrigin(bossText.getLocalBounds().width / 2, bossText.getLocalBounds().height / 2);
+    bossText.setPosition(400, 200);
+    bool showBossText = false;
+
+    sf::Font bossFont;
+    if (!bossFont.loadFromFile("assets/fonts/AngelicWar.ttf")) {
+        // Si falla, usar la fuente por defecto
+    }
+    sf::Text bossTimerText;
+    bossTimerText.setFont(bossFont);
+    bossTimerText.setCharacterSize(60);
+    bossTimerText.setFillColor(sf::Color::Yellow);
+    bossTimerText.setStyle(sf::Text::Bold);
+    bossTimerText.setPosition(200, 350);
+    bool showBossTimer = false;
+    float bossCountdown = 0;
+
+    bool allEnemiesDefeated = false;
 
     while (window.isOpen())
     {
@@ -457,21 +493,37 @@ int main()
         }
         enemyShooter.updateBullets();
         // --- Colisión entre balas enemigas y barreras ---
-        auto& peaBullets = enemyShooter.getBullets();
-        peaBullets.erase(std::remove_if(peaBullets.begin(), peaBullets.end(), [&](const EnemyBullet& eb) {
-            for (auto& barrera : barreras) {
-                if (barrera.isAlive() && eb.sprite.getGlobalBounds().intersects(barrera.getSprite().getGlobalBounds())) {
-                    barrera.takeDamage(20);
+        if (!bossAppeared) {
+            auto& peaBullets = enemyShooter.getBullets();
+            peaBullets.erase(std::remove_if(peaBullets.begin(), peaBullets.end(), [&](const EnemyBullet& eb) {
+                for (auto& barrera : barreras) {
+                    if (barrera.isAlive() && eb.sprite.getGlobalBounds().intersects(barrera.getSprite().getGlobalBounds())) {
+                        barrera.takeDamage(20);
+                        return true;
+                    }
+                }
+                if (eb.sprite.getPosition().y > 800) return true;
+                if (eb.sprite.getGlobalBounds().intersects(player.getGlobalBounds())) {
+                    playerHP.takeDamage(20);
                     return true;
                 }
+                return false;
+            }), peaBullets.end());
+        } else {
+            // Si el boss está en pantalla, eliminar todas las balas de enemigos normales
+            enemyShooter.getBullets().clear();
+        }
+        // --- Lógica de daño y movimiento de lasers del boss ---
+        if (bossAppeared && boss.isActive()) {
+            auto& bossLasers = boss.getLasers();
+            for (auto& laser : bossLasers) {
+                if (playerHP.isAlive() && laser.getGlobalBounds().intersects(player.getGlobalBounds())) {
+                    playerHP.takeDamage(40); // Daño mayor por laser del boss
+                    // Opcional: puedes hacer que el láser desaparezca tras impactar
+                    laser.setPosition(-100, -100); // Lo mueve fuera de pantalla
+                }
             }
-            if (eb.sprite.getPosition().y > 800) return true;
-            if (eb.sprite.getGlobalBounds().intersects(player.getGlobalBounds())) {
-                playerHP.takeDamage(20);
-                return true;
-            }
-            return false;
-        }), peaBullets.end());
+        }
 
         // --- Daño por enemigos que llegan al fondo ---
         for (int i = 0; i < numEnemies; ++i) {
@@ -496,6 +548,66 @@ int main()
             gameState = GameState::GameOver;
         }
 
+        // --- Lógica de aparición del boss con retardo y depuración ---
+        allEnemiesDefeated = true;
+        for (int i = 0; i < numEnemies; ++i) {
+            if (healthManager.getPeaHP()[i] > 0 || healthManager.getPebHP()[i] > 0 || healthManager.getPecHP()[i] > 0) {
+                allEnemiesDefeated = false;
+                break;
+            }
+        }
+        if (allEnemiesDefeated && !bossReadyToAppear) {
+            std::cout << "[DEBUG] Todos los enemigos eliminados. Iniciando retardo para boss..." << std::endl;
+            bossDelayClock.restart();
+            bossReadyToAppear = true;
+        }
+        if (bossReadyToAppear && !bossAppeared && bossDelayClock.getElapsedTime().asSeconds() >= 5.0f) {
+            std::cout << "[DEBUG] Boss aparece!" << std::endl;
+            boss.appear();
+            bossAppeared = true;
+            bossClock.restart();
+        }
+        // --- DEPURACIÓN: Forzar aparición del boss tras 10 segundos de juego ---
+        // static sf::Clock debugBossClock;
+        // if (!bossAppeared && debugBossClock.getElapsedTime().asSeconds() > 10.0f) {
+        //     std::cout << "[DEBUG] Forzando aparición del boss tras 10 segundos." << std::endl;
+        //     boss.appear();
+        //     bossAppeared = true;
+        //     bossClock.restart();
+        // }
+        // --- Cronómetro visual para aparición del boss ---
+        // Solo mostrar el cronómetro cuando el último enemigo es eliminado
+        allEnemiesDefeated = true;
+        for (int i = 0; i < numEnemies; ++i) {
+            if (healthManager.getPeaHP()[i] > 0 || healthManager.getPebHP()[i] > 0 || healthManager.getPecHP()[i] > 0) {
+                allEnemiesDefeated = false;
+                break;
+            }
+        }
+        if (allEnemiesDefeated && !bossReadyToAppear && !bossAppeared) {
+            bossDelayClock.restart();
+            bossReadyToAppear = true;
+            showBossTimer = true;
+        }
+        if (bossReadyToAppear && !bossAppeared) {
+            bossCountdown = 5.0f - bossDelayClock.getElapsedTime().asSeconds();
+            if (bossCountdown < 0) bossCountdown = 0;
+            bossTimerText.setString("BOSS en: " + std::to_string((int)bossCountdown) + "s");
+            showBossTimer = true;
+            if (bossDelayClock.getElapsedTime().asSeconds() >= 5.0f) {
+                boss.appear();
+                bossAppeared = true;
+                bossClock.restart();
+                showBossTimer = false;
+            }
+        } else {
+            showBossTimer = false;
+        }
+        if (bossAppeared) {
+            float bossDeltaTime = bossClock.restart().asSeconds();
+            boss.update(bossDeltaTime);
+        }
+
         window.clear();
         window.draw(fondo);
         window.draw(playerHP.getSprite());
@@ -503,15 +615,32 @@ int main()
         drawPlayer(window, player, playerHP);
         bulletManager.draw(window);
         enemyShooter.drawBullets(window);
-        for (int i = 0; i < numEnemies; ++i)
-            if (healthManager.getPeaHP()[i] > 0)
-                peas[i].draw(window);
-        for (int i = 0; i < numEnemies; ++i)
-            if (healthManager.getPebHP()[i] > 0)
-                pebs[i].draw(window);
-        for (int i = 0; i < numEnemies; ++i)
-            if (healthManager.getPecHP()[i] > 0)
-                pecs[i].draw(window);
+        if (!bossAppeared) {
+            for (int i = 0; i < numEnemies; ++i)
+                if (healthManager.getPeaHP()[i] > 0)
+                    peas[i].draw(window);
+            for (int i = 0; i < numEnemies; ++i)
+                if (healthManager.getPebHP()[i] > 0)
+                    pebs[i].draw(window);
+            for (int i = 0; i < numEnemies; ++i)
+                if (healthManager.getPecHP()[i] > 0)
+                    pecs[i].draw(window);
+        }
+        if (showBossTimer) {
+            window.draw(bossTimerText);
+        }
+        if (bossAppeared && boss.isActive()) {
+            boss.draw(window);
+        }
+        if (showBossText) {
+            window.draw(bossText);
+            // El mensaje solo se muestra 2 segundos
+            static sf::Clock bossTextClock;
+            if (bossTextClock.getElapsedTime().asSeconds() > 2.0f) {
+                showBossText = false;
+                bossTextClock.restart();
+            }
+        }
         window.display();
     }
 

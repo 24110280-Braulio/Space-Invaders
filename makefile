@@ -11,8 +11,8 @@ CPP_FILES := $(filter-out $(SRC_DIR)/Jefe.cpp, $(wildcard $(SRC_DIR)/*.cpp))
 EXE_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(BIN_DIR)/%.exe,$(CPP_FILES))
 
 # Regla para compilar cada archivo .cpp y generar el archivo .exe correspondiente
-$(BIN_DIR)/%.exe: $(SRC_DIR)/%.cpp
-	g++ $< -o $@ $(SFML) -Iinclude -mconsole
+$(BIN_DIR)/%.exe: $(SRC_DIR)/%.cpp src/Jefe.cpp
+	g++ $< src/Jefe.cpp -o $@ $(SFML) -Iinclude -mconsole
 
 # Regla por defecto para compilar todos los archivos .cpp
 all: $(EXE_FILES)

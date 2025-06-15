@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include "../include/Jefe.hpp"
 
 #pragma once
 #include <SFML/Graphics.hpp>
@@ -65,6 +66,9 @@ int main() {
     pebSprite.setPosition(350, 250);
     pecSprite.setPosition(600, 250);
 
+    Boss boss({380, 60}); // Posición superior central
+    bool bossAppeared = false;
+
     sf::Clock clock;
     while (window.isOpen()) {
         sf::Event event;
@@ -80,10 +84,26 @@ int main() {
         pebSprite.update(deltaTime);
         pecSprite.update(deltaTime);
 
+        // Lógica para detectar si todos los enemigos han sido eliminados
+        // Aquí simplemente simulamos que desaparecen tras 10 segundos
+        static float enemyTimer = 0;
+        if (!bossAppeared) {
+            enemyTimer += deltaTime;
+            if (enemyTimer > 10.0f) { // Simulación: tras 10 segundos
+                boss.appear();
+                bossAppeared = true;
+            }
+        }
+        boss.update(deltaTime);
+
         window.clear();
-        peaSprite.draw(window);
-        pebSprite.draw(window);
-        pecSprite.draw(window);
+        if (!bossAppeared) {
+            peaSprite.draw(window);
+            pebSprite.draw(window);
+            pecSprite.draw(window);
+        } else {
+            boss.draw(window);
+        }
         window.display();
     }
     return 0;
