@@ -5,6 +5,7 @@
 #include <array>
 #include "../include/EnemyShooter.hpp"
 #include "../include/Barrier.hpp"
+#include "../include/PlayerHealth.hpp"
 
 int main()
 {
