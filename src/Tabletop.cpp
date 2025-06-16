@@ -535,9 +535,34 @@ int main()
             for (auto& laser : bossLasers) {
                 if (playerHP.isAlive() && laser.getGlobalBounds().intersects(player.getGlobalBounds())) {
                     playerHP.takeDamage(40); // Daño mayor por laser del boss
-                    // Opcional: puedes hacer que el láser desaparezca tras impactar
                     laser.setPosition(-100, -100); // Lo mueve fuera de pantalla
                 }
+            }
+            // --- Colisión de balas del jugador con el jefe ---
+            if (bossHp > 0) {
+                auto& bullets = bulletManager.getBullets();
+                auto bossBounds = boss.getBounds();
+                auto it = std::remove_if(bullets.begin(), bullets.end(), [&](const sf::Sprite& bullet) {
+                    if (bullet.getGlobalBounds().intersects(bossBounds)) {
+                        bossHp -= 20; // Daño por bala
+                        if (bossHp < 0) bossHp = 0;
+                        return true; // Eliminar bala
+                    }
+                    return false;
+                });
+                bullets.erase(it, bullets.end());
+                // Actualizar barra de vida visual
+                int hpIndex = 0;
+                float porcentaje = (float)bossHp / (float)bossMaxHp;
+                if (porcentaje > 0.8f) hpIndex = 0;
+                else if (porcentaje > 0.6f) hpIndex = 1;
+                else if (porcentaje > 0.4f) hpIndex = 2;
+                else if (porcentaje > 0.2f) hpIndex = 3;
+                else if (porcentaje > 0.05f) hpIndex = 4;
+                else hpIndex = 5;
+                bossHpBar.setTexture(bossHpTextures[hpIndex]);
+                // Opcional: marcar jefe como derrotado
+                if (bossHp == 0) bossDefeated = true;
             }
         }
 
@@ -577,8 +602,9 @@ int main()
             bossDelayClock.restart();
             bossReadyToAppear = true;
         }
-        if (bossReadyToAppear && !bossAppeared && bossDelayClock.getElapsedTime().asSeconds() >= 5.0f) {
+        if (bossReadyToAppear && !bossAppeared && bossDelayClock.getElapsedTime().asSeconds() >= 10.0f) {
             std::cout << "[DEBUG] Boss aparece!" << std::endl;
+            playerHP.restoreFullHealth();
             boss.appear();
             bossAppeared = true;
             bossClock.restart();

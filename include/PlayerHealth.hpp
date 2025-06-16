@@ -39,6 +39,7 @@ public:
     int getHP() const { return hp; }
     bool isInvulnerable() const { return invulnerable; }
     sf::Sprite& getSprite() { return hpSprite; }
+    void restoreFullHealth() { hp = maxHp; invulnerable = false; updateSprite(); }
 
 private:
     void updateSprite() {
