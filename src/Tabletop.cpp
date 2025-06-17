@@ -269,6 +269,26 @@ int main()
     int bossHp = bossMaxHp;
     bool bossDefeated = false;
 
+    // --- Variables para animación de explosión del jefe ---
+    std::vector<sf::Texture> bossExplosionTextures(10);
+    bool explosionTexturesOk = true;
+    for (int i = 0; i < 10; ++i) {
+        std::string filename = "assets/images/Explosion" + std::to_string(i + 1) + ".png";
+        if (!bossExplosionTextures[i].loadFromFile(filename)) {
+            std::cout << "[ERROR] No se pudo cargar: " << filename << std::endl;
+            explosionTexturesOk = false;
+        }
+    }
+    sf::Sprite bossExplosionSprite;
+    bossExplosionSprite.setOrigin(64, 64);
+    bossExplosionSprite.setPosition(400, 100); // Forzar centro de pantalla
+    int bossExplosionFrame = 0;
+    float bossExplosionFrameTime = 0.08f;
+    sf::Clock bossExplosionClock;
+    bool showBossExplosion = false;
+    bool bossExplosionFinished = false;
+    sf::Vector2f bossExplosionPos(400, 100); // Valor por defecto
+
     while (window.isOpen())
     {
         sf::Event event;
@@ -558,11 +578,14 @@ int main()
                 else if (porcentaje > 0.6f) hpIndex = 1;
                 else if (porcentaje > 0.4f) hpIndex = 2;
                 else if (porcentaje > 0.2f) hpIndex = 3;
-                else if (porcentaje > 0.05f) hpIndex = 4;
-                else hpIndex = 5;
+                else if (porcentaje > 0.05f && bossHp > 0) hpIndex = 4;
+                else hpIndex = 5; // Solo cuando bossHp == 0
                 bossHpBar.setTexture(bossHpTextures[hpIndex]);
-                // Opcional: marcar jefe como derrotado
-                if (bossHp == 0) bossDefeated = true;
+                // Marcar jefe como derrotado solo cuando hpIndex==5
+                if (hpIndex == 5 && !bossDefeated) {
+                    bossDefeated = true;
+                    boss.getLasers().clear();
+                }
             }
         }
 
@@ -648,7 +671,18 @@ int main()
         }
         if (bossAppeared) {
             float bossDeltaTime = bossClock.restart().asSeconds();
-            boss.update(bossDeltaTime, player.getPosition());
+            // Solo actualizar al jefe si NO está derrotado (barra de vida no en último sprite)
+            int hpIndex = 0;
+            float porcentaje = (float)bossHp / (float)bossMaxHp;
+            if (porcentaje > 0.8f) hpIndex = 0;
+            else if (porcentaje > 0.6f) hpIndex = 1;
+            else if (porcentaje > 0.4f) hpIndex = 2;
+            else if (porcentaje > 0.2f) hpIndex = 3;
+            else if (porcentaje > 0.05f && bossHp > 0) hpIndex = 4;
+            else hpIndex = 5;
+            if (hpIndex < 5) {
+                boss.update(bossDeltaTime, player.getPosition());
+            }
         }
 
         window.clear();
@@ -658,33 +692,44 @@ int main()
         drawPlayer(window, player, playerHP);
         bulletManager.draw(window);
         enemyShooter.drawBullets(window);
-        if (!bossAppeared) {
-            for (int i = 0; i < numEnemies; ++i)
-                if (healthManager.getPeaHP()[i] > 0)
-                    peas[i].draw(window);
-            for (int i = 0; i < numEnemies; ++i)
-                if (healthManager.getPebHP()[i] > 0)
-                    pebs[i].draw(window);
-            for (int i = 0; i < numEnemies; ++i)
-                if (healthManager.getPecHP()[i] > 0)
-                    pecs[i].draw(window);
+        // --- DIBUJAR ENEMIGOS SIEMPRE ---
+        for (int i = 0; i < numEnemies; ++i)
+            if (healthManager.getPeaHP()[i] > 0)
+                peas[i].draw(window);
+        for (int i = 0; i < numEnemies; ++i)
+            if (healthManager.getPebHP()[i] > 0)
+                pebs[i].draw(window);
+        for (int i = 0; i < numEnemies; ++i)
+            if (healthManager.getPecHP()[i] > 0)
+                pecs[i].draw(window);
+        // --- DIBUJO DEL JEFE Y SU BARRA DE VIDA ---
+        if (bossAppeared) {
+            if (showBossExplosion && !bossExplosionFinished && explosionTexturesOk) {
+                bossExplosionSprite.setPosition(bossExplosionPos);
+                bossExplosionSprite.setTexture(bossExplosionTextures[bossExplosionFrame]);
+                window.draw(bossExplosionSprite);
+                if (bossExplosionClock.getElapsedTime().asSeconds() >= bossExplosionFrameTime) {
+                    bossExplosionFrame++;
+                    bossExplosionClock.restart();
+                }
+                if (bossExplosionFrame >= 10) {
+                    bossExplosionFinished = true;
+                    bossExplosionFrame = 9; // Dejar el último frame
+                }
+                window.draw(bossHpBar);
+            } else if (bossExplosionFinished && explosionTexturesOk) {
+                bossExplosionSprite.setPosition(bossExplosionPos);
+                bossExplosionSprite.setTexture(bossExplosionTextures[9]);
+                window.draw(bossExplosionSprite);
+                window.draw(bossHpBar);
+            } else if (!showBossExplosion) {
+                boss.draw(window);
+                window.draw(bossHpBar);
+            }
         }
+        // --- Mostrar contador de aparición del jefe si corresponde ---
         if (showBossTimer) {
             window.draw(bossTimerText);
-        }
-        if (bossAppeared && boss.isActive()) {
-            boss.draw(window);
-            // Dibujar barra de vida del jefe
-            window.draw(bossHpBar);
-        }
-        if (showBossText) {
-            window.draw(bossText);
-            // El mensaje solo se muestra 2 segundos
-            static sf::Clock bossTextClock;
-            if (bossTextClock.getElapsedTime().asSeconds() > 2.0f) {
-                showBossText = false;
-                bossTextClock.restart();
-            }
         }
         window.display();
     }
@@ -692,46 +737,15 @@ int main()
     return 0;
 }
 
-// --- Función para manejar la entrada del jugador ---
-void handlePlayerInput(sf::Sprite& player, float velocidad, const sf::Texture& playerTexture, PlayerHealth& playerHP) {
-    sf::Vector2f pos = player.getPosition();
-    sf::Vector2u size = playerTexture.getSize();
-    float minX = 0;
-    float minY = 582;
-    float maxX = 800 - size.x;
-    float maxY = 800 - size.y;
-    if (playerHP.isAlive()) {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-            if (pos.y - velocidad >= minY)
-                player.move(0, -velocidad);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-            if (pos.y + velocidad <= maxY)
-                player.move(0, velocidad);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-            if (pos.x - velocidad >= minX)
-                player.move(-velocidad, 0);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-            if (pos.x + velocidad <= maxX)
-                player.move(velocidad, 0);
+void drawBarriers(sf::RenderWindow& window, std::vector<Barrier>& barreras) {
+    for (auto& barrera : barreras) {
+        if (barrera.isAlive()) {
+            window.draw(barrera.getSprite());
+        }
     }
 }
 
-// --- Función para renderizar enemigos ---
-void drawEnemies(sf::RenderWindow& window, const EnemyGroup& group, const std::vector<int>& hp) {
-    for (int i = 0; i < hp.size(); ++i)
-        if (hp[i] > 0)
-            (*group.enemies)[i].draw(window);
-}
-
-// --- Función para renderizar barreras ---
-void drawBarriers(sf::RenderWindow& window, std::vector<Barrier>& barreras) {
-    for (auto& barrera : barreras)
-        if (barrera.isAlive())
-            window.draw(barrera.getSprite());
-}
-
-// --- Función para renderizar jugador ---
 void drawPlayer(sf::RenderWindow& window, const sf::Sprite& player, const PlayerHealth& playerHP) {
-    if (playerHP.isAlive())
-        window.draw(player);
+    window.draw(player);
+    window.draw(playerHP.getSprite());
 }

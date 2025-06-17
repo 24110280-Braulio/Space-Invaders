@@ -4,7 +4,7 @@
 		{
 			"type": "shell",
 			"label": "Compilar Tabletop.cpp",
-			"command": "g++ -Iinclude -o bin/Tabletop.exe src/Tabletop.cpp",
+			"command": "g++ -Iinclude -o bin/Tabletop.exe src/Tabletop.cpp src/Jefe.cpp -lsfml-graphics -lsfml-window -lsfml-system",
 			"group": "build",
 			"problemMatcher": [
 				"$gcc"
