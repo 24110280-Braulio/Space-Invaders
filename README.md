@@ -1,12 +1,18 @@
-# Space Invaders: Edición Maquiavélica
+# Space Invaders
 
-Bienvenido a Space Invaders: Edición Maquiavélica, una versión moderna y desafiante del clásico videojuego Space Invaders. Este proyecto ha sido desarrollado en C++ utilizando la biblioteca SFML, incorporando gráficos personalizados, animaciones fluidas, efectos de sonido y una pantalla de Game Over distintiva.
+Bienvenido a Space Invaders, una versión moderna y desafiante del clásico videojuego arcade. Este proyecto ha sido desarrollado en C++ utilizando la biblioteca SFML, incorporando gráficos personalizados, animaciones fluidas, efectos de sonido y una pantalla de Game Over distintiva.
 
 ---
 
 ## ¿Qué es este proyecto?
 
-Space Invaders: Edición Maquiavélica es un remake que busca ofrecer una experiencia renovada del clásico, integrando arte original, jugabilidad pulida y una dificultad progresiva que representa un reto constante para el jugador.
+Space Invaders es un remake que busca ofrecer una experiencia renovada del clásico, integrando arte original, jugabilidad pulida y una dificultad progresiva que representa un reto constante para el jugador.
+
+---
+
+# Descripción general
+
+Space Invaders es una recreación del clásico videojuego arcade, desarrollada como proyecto educativo. El objetivo principal es defender la Tierra de oleadas de invasores espaciales controlando una nave que puede moverse horizontalmente y disparar hacia arriba.
 
 ---
 
@@ -14,10 +20,15 @@ Space Invaders: Edición Maquiavélica es un remake que busca ofrecer una experi
 
 - **Gráficos en alta definición:** Sprites y fondos diseñados especialmente para este proyecto.
 - **Animaciones fluidas:** Enemigos y disparos cuentan con animaciones detalladas.
-- **Banda sonora retro:** Efectos y música 8-bit para una ambientación inmersiva.
 - **Dificultad progresiva:** El nivel de desafío aumenta conforme avanza la partida.
 - **Pantalla de Game Over personalizada:** Mensaje centralizado y tipografía exclusiva.
-- **Código modular:** Estructura clara y fácil de expandir.
+
+---
+
+## Tecnologías utilizadas
+
+- Lenguaje de programación: C++
+- Librerías/gráficos: Tabletop, PACFight
 
 ---
 
@@ -28,17 +39,17 @@ Space Invaders: Edición Maquiavélica es un remake que busca ofrecer una experi
 
 ---
 
-## Instrucciones de compilación y ejecución
+## Cómo jugar
 
-1. Asegúrese de tener instalado MinGW y SFML en su sistema.
-2. Compile el proyecto ejecutando el siguiente comando:
-   ```sh
-   make bin/Tabletop.exe
+1. Ejecuta el archivo `Game.cpp` utilizando el siguiente comando en la terminal:
    ```
-3. Ejecute el juego con:
-   ```sh
-   ./bin/Tabletop.exe
+   make runGame
    ```
+2. Al ejecutar el comando, se desplegará un menú en la terminal donde podrás elegir un nivel para jugar.
+3. El nivel "Space Invaders" corresponde al nivel diseñado en `Tabletop.cpp`.
+4. El nivel "PacFight" corresponde al archivo `PacFight.cpp`.
+
+Asegúrese de tener instalado MinGW y SFML en su sistema.
 
 ---
 
@@ -67,6 +78,23 @@ Space-Invaders/
 
 ---
 
-## Nota final
+# Librerías utilizadas en PacFight.cpp y Tabletop.cpp
 
-"En el espacio, nadie puede oír sus gritos... pero sí su puntuación."
+A continuación se listan las librerías y cabeceras incluidas en los archivos `src/PacFight.cpp` y `src/Tabletop.cpp`:
+
+### Librerías presentes en ambos archivos:
+- `<SFML/Graphics.hpp>`
+- `<vector>`
+- `<algorithm>`
+- `<array>`
+- `<functional>`
+- `"../include/PlayerHealth.hpp"`
+
+### Librerías adicionales en Tabletop.cpp:
+- `"../include/EnemyMovementManager.hpp"`
+- `"../include/EnemyHealthManager.hpp"`
+- `"../include/Enemy.hpp"`
+- `"../include/Barrier.hpp"`
+- `"../include/EnemyShooter.hpp"`
+- `"../include/Jefe.hpp"`
+- `<iostream>`
