@@ -289,6 +289,22 @@ int main()
     bool bossExplosionFinished = false;
     sf::Vector2f bossExplosionPos(400, 100); // Valor por defecto
 
+    // --- Victoria ---
+    sf::Texture victoriaTexture;
+    if (!victoriaTexture.loadFromFile("assets/images/Victoria.png")) {
+        std::cerr << "No se pudo cargar la imagen de victoria" << std::endl;
+    }
+    sf::Sprite victoriaSprite;
+    victoriaSprite.setTexture(victoriaTexture);
+    victoriaSprite.setScale(
+        800.0f / victoriaTexture.getSize().x,
+        800.0f / victoriaTexture.getSize().y
+    );
+    victoriaSprite.setPosition(0, 0);
+    sf::Clock victoriaClock;
+    bool mostrarVictoria = false;
+    bool victoriaTimerIniciado = false;
+
     while (window.isOpen())
     {
         sf::Event event;
@@ -685,6 +701,20 @@ int main()
             }
         }
 
+        // --- Mostrar imagen de victoria si corresponde ---
+        // Solo activar el temporizador UNA vez cuando bossDefeated se vuelve true
+        if (bossDefeated && !victoriaTimerIniciado) {
+            victoriaClock.restart();
+            victoriaTimerIniciado = true;
+        }
+        // Solo mostrar la pantalla de victoria después de 3 segundos
+        if (victoriaTimerIniciado && victoriaClock.getElapsedTime().asSeconds() >= 3.0f) {
+            window.clear();
+            window.draw(victoriaSprite);
+            window.display();
+            continue;
+        }
+
         window.clear();
         window.draw(fondo);
         window.draw(playerHP.getSprite());
@@ -731,6 +761,7 @@ int main()
         if (showBossTimer) {
             window.draw(bossTimerText);
         }
+
         window.display();
     }
 
