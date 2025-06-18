@@ -1,44 +1,49 @@
-# 🚀 Space Invaders: Edición Maquiavélica 👾
+# Space Invaders: Edición Maquiavélica
 
-¡Bienvenido a la experiencia definitiva de Space Invaders, donde la nostalgia retro se fusiona con el arte y la estrategia! Prepárate para desafiar a hordas de enemigos en un universo visualmente impactante, con sonidos envolventes y una jugabilidad pulida al máximo.
-
----
-
-## 🎮 ¿Qué es esto?
-Un remake moderno y desafiante del clásico Space Invaders, creado con C++ y SFML, con gráficos personalizados, animaciones, efectos de sonido y una pantalla de Game Over que te hará querer volver a intentarlo una y otra vez.
+Bienvenido a Space Invaders: Edición Maquiavélica, una versión moderna y desafiante del clásico videojuego Space Invaders. Este proyecto ha sido desarrollado en C++ utilizando la biblioteca SFML, incorporando gráficos personalizados, animaciones fluidas, efectos de sonido y una pantalla de Game Over distintiva.
 
 ---
 
-## 🛠️ Características Maquiavélicas
-- **Gráficos HD**: Sprites y fondos diseñados a mano para una experiencia visual única.
-- **Animaciones fluidas**: Enemigos y disparos con animaciones detalladas.
-- **Banda sonora retro**: Efectos y música 8-bit para sumergirte en la acción.
-- **Dificultad progresiva**: ¡Cada partida es un reto!
-- **Pantalla de Game Over**: Tipografía exclusiva y mensaje centralizado para que pierdas con estilo.
-- **Código modular**: Fácil de entender y expandir.
+## ¿Qué es este proyecto?
+
+Space Invaders: Edición Maquiavélica es un remake que busca ofrecer una experiencia renovada del clásico, integrando arte original, jugabilidad pulida y una dificultad progresiva que representa un reto constante para el jugador.
 
 ---
 
-## 🧑‍💻 Autores
+## Características principales
+
+- **Gráficos en alta definición:** Sprites y fondos diseñados especialmente para este proyecto.
+- **Animaciones fluidas:** Enemigos y disparos cuentan con animaciones detalladas.
+- **Banda sonora retro:** Efectos y música 8-bit para una ambientación inmersiva.
+- **Dificultad progresiva:** El nivel de desafío aumenta conforme avanza la partida.
+- **Pantalla de Game Over personalizada:** Mensaje centralizado y tipografía exclusiva.
+- **Código modular:** Estructura clara y fácil de expandir.
+
+---
+
+## Autores
+
 - **Braulio Jasib Sánchez Vázquez** — 24110280
 - **Ander Azariel Jimenez Palafox** — 24110210
 
 ---
 
-## 🚀 Cómo ejecutar
-1. Asegúrate de tener instalado MinGW y SFML.
-2. Compila el proyecto con:
+## Instrucciones de compilación y ejecución
+
+1. Asegúrese de tener instalado MinGW y SFML en su sistema.
+2. Compile el proyecto ejecutando el siguiente comando:
    ```sh
    make bin/Tabletop.exe
    ```
-3. Ejecuta el juego:
+3. Ejecute el juego con:
    ```sh
    ./bin/Tabletop.exe
    ```
 
 ---
 
-## 📁 Estructura del proyecto
+## Estructura del proyecto
+
 ```
 Space-Invaders/
 ├── assets/
@@ -46,21 +51,22 @@ Space-Invaders/
 │   ├── Audios/        # Efectos de sonido
 │   └── fonts/         # Tipografías exclusivas
 ├── bin/               # Ejecutables
-├── include/           # Headers
+├── include/           # Archivos de cabecera
 ├── src/               # Código fuente
-├── makefile           # Compilación
-└── README.md          # Este archivo
+├── makefile           # Archivo de compilación
+└── README.md          # Este documento
 ```
 
 ---
 
-## ✨ Créditos especiales
+## Créditos especiales
+
 - Tipografía: AngelicWar.ttf
 - Sonidos: Efectos 8-bit libres de derechos
-- Inspiración: El Space Invaders original y la creatividad maquiavélica de sus autores
+- Inspiración: Space Invaders original
 
 ---
 
-## 🕹️ ¡Que gane el más maquiavélico!
+## Nota final
 
-> "En el espacio, nadie puede oír tus gritos... pero sí tu puntuación."
+"En el espacio, nadie puede oír sus gritos... pero sí su puntuación."
