@@ -1,0 +1,71 @@
+@startuml SpaceInvaders
+
+class Game {
+    - Tabletop: Tabletop
+    - PacFight: PacFight
+    - PlayerHealth: PlayerHealth
+    - EnemyManager: EnemyManager
+    - EnemyMovementManager: EnemyMovementManager
+    - EnemyHealthManager: EnemyHealthManager
+    - EnemyShooter: EnemyShooter
+    - Barrier: Barrier
+    - Boss: Boss
+}
+
+class Tabletop {
+    - EnemyManager: EnemyManager
+    - EnemyMovementManager: EnemyMovementManager
+    - EnemyHealthManager: EnemyHealthManager
+    - EnemyShooter: EnemyShooter
+    - Barrier: Barrier
+    - Boss: Boss
+    - PlayerHealth: PlayerHealth
+}
+
+class PacFight {
+    - EnemyManager: EnemyManager
+    - PlayerHealth: PlayerHealth
+}
+
+class EnemyManager
+class EnemyMovementManager
+class EnemyHealthManager
+class EnemyShooter
+class Barrier
+class Boss
+class PlayerHealth
+
+class PlayerShipPng as "playerShip.png"
+class EnemyPng as "enemy.png"
+class BossPng as "boss.png"
+class BarrierPng as "barrier.png"
+class BulletPng as "bullet.png"
+
+Game --> Tabletop
+Game --> PacFight
+Game --> PlayerHealth
+Game --> EnemyManager
+Game --> EnemyMovementManager
+Game --> EnemyHealthManager
+Game --> EnemyShooter
+Game --> Barrier
+Game --> Boss
+
+Tabletop --> EnemyManager
+Tabletop --> EnemyMovementManager
+Tabletop --> EnemyHealthManager
+Tabletop --> EnemyShooter
+Tabletop --> Barrier
+Tabletop --> Boss
+Tabletop --> PlayerHealth
+
+PacFight --> EnemyManager
+PacFight --> PlayerHealth
+
+PlayerHealth "1" *-- "1" PlayerShipPng : utiliza
+EnemyManager "1" *-- "*" EnemyPng : controla
+Boss "1" *-- "1" BossPng : utiliza
+Barrier "1" *-- "1" BarrierPng : utiliza
+EnemyShooter "1" *-- "1" BulletPng : utiliza
+
+@enduml
