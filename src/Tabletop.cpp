@@ -283,7 +283,7 @@ int main()
     bossExplosionSprite.setOrigin(64, 64);
     bossExplosionSprite.setPosition(400, 100); // Forzar centro de pantalla
     int bossExplosionFrame = 0;
-    float bossExplosionFrameTime = 0.08f;
+    float bossExplosionFrameTime = 1.00f;
     sf::Clock bossExplosionClock;
     bool showBossExplosion = false;
     bool bossExplosionFinished = false;
