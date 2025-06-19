@@ -2,30 +2,42 @@
 
 ' Clases principales
 class Game {
-    - Tabletop: Tabletop
-    - PacFight: PacFight
-    - PlayerHealth: PlayerHealth
-    - EnemyManager: EnemyManager
-    - EnemyMovementManager: EnemyMovementManager
-    - EnemyHealthManager: EnemyHealthManager
-    - EnemyShooter: EnemyShooter
-    - Barrier: Barrier
-    - Boss: Boss
+    - tabletop: Tabletop
+    - pacFight: PacFight
+    - playerHealth: PlayerHealth
+    - enemyManager: EnemyManager
+    - enemyMovementManager: EnemyMovementManager
+    - enemyHealthManager: EnemyHealthManager
+    - enemyShooter: EnemyShooter
+    - barrier: Barrier
+    - boss: Boss
 }
 
 class Tabletop {
-    - EnemyManager: EnemyManager
-    - EnemyMovementManager: EnemyMovementManager
-    - EnemyHealthManager: EnemyHealthManager
-    - EnemyShooter: EnemyShooter
-    - Barrier: Barrier
-    - Boss: Boss
-    - PlayerHealth: PlayerHealth
+    - enemyManager: EnemyManager
+    - enemyMovementManager: EnemyMovementManager
+    - enemyHealthManager: EnemyHealthManager
+    - enemyShooter: EnemyShooter
+    - barrier: Barrier
+    - boss: Boss
+    - playerHealth: PlayerHealth
+    + Inicializar()
+    + Renderizar()
+    + Actualizar()
+    + AgregarEntidad(Enemy)
+    + RemoverEntidad(Enemy)
+    + VerificarColisiones()
+    + ObtenerEntidades()
+    + ProcesarEntrada(entrada)
 }
 
 class PacFight {
-    - EnemyManager: EnemyManager
-    - PlayerHealth: PlayerHealth
+    - enemyManager: EnemyManager
+    - playerHealth: PlayerHealth
+    + Inicializar()
+    + Actualizar()
+    + ProcesarEntrada(entrada)
+    + VerificarColisiones()
 }
 
 class EnemyManager
