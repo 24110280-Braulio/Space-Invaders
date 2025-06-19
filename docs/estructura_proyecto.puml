@@ -1,170 +1,61 @@
-@startuml estructura_documentos
-' Estructura de carpetas y archivos realmente presentes en el proyecto
+@startuml estructura_proyecto_ordenado
+' Diagrama de estructura y relaciones inspirado en el ejemplo proporcionado, usando solo los elementos presentes en el proyecto
 
-folder "assets" {
-  folder "Audios" {
-    file "8 Bit bomb explosion - Sound Effect.mp3"
-    file "Laser Gun Sound Effect.mp3"
-    file "Space Invaders Sound Effect.mp3"
-  }
-  folder "fonts" {
-    file "AngelicWar.ttf"
-    file "tiny-and-chunky.ttf"
-  }
-  folder "images" {
-    file "0 HP.png"
-    file "100 HP.png"
-    file "20 HP.png"
-    file "40 HP.png"
-    file "60 HP.png"
-    file "80 HP.png"
-    file "Barrera.png"
-    file "Boss1_A.png"
-    file "Boss1_B.png"
-    folder "Boss2nd" {
-      file "BlinkyL.png"
-      file "BlinkyR.png"
-      file "ClaydL.png"
-      file "ClaydR.png"
-      file "Goal.png"
-      file "Huida (1).png"
-      file "Huida (2).png"
-      file "InkyL.png"
-      file "InkyR.png"
-      file "PACmove (Base).png"
-      file "PACmove2 (Down).png"
-      file "PACmove2 (Left).png"
-      file "PACmove2 (Right).png"
-      file "PACmove2 (Up).png"
-      file "PACmove3 (Down).png"
-      file "PACmove3 (Left).png"
-      file "PACmove3 (Right).png"
-      file "PACmove3 (Up).png"
-      file "PinkyL.png"
-      file "PinkyR.png"
-    }
-    file "DisparoNave.png"
-    file "Eshoot(1).png"
-    file "Eshoot(2).png"
-    file "Eshoot(3).png"
-    file "Eshoot(4).png"
-    file "Explosion1.png"
-    file "Explosion10.png"
-    file "Explosion2.png"
-    file "Explosion3.png"
-    file "Explosion4.png"
-    file "Explosion5.png"
-    file "Explosion6.png"
-    file "Explosion7.png"
-    file "Explosion8.png"
-    file "Explosion9.png"
-    file "Fondo Espacial.png"
-    file "Fondo negro.png"
-    file "Inicio.png"
-    file "Laser1.png"
-    file "Laser2.png"
-    file "Level (1).png"
-    file "Level (2).png"
-    file "Lowbarrier.png"
-    file "PEA.png"
-    file "PEB.png"
-    file "PEC.png"
-    file "Shootout.png"
-    file "space_Player.png"
-    file "Timeout.png"
-    file "Victoria.png"
-    file "VidaJefe1.png"
-    file "VidaJefe2.png"
-    file "VidaJefe3.png"
-    file "VidaJefe4.png"
-    file "VidaJefe5.png"
-    file "VidaJefe6.png"
-  }
-}
-folder "bin" {
-  file "Barreras.exe"
-  file "BossFight.exe"
-  file "BossFight2nd.exe"
-  file "BossSprite.exe"
-  file "boss_explosion.exe"
-  file "boss_explosion_textures_snippet.exe"
-  file "EnBa.exe"
-  file "Enemies.exe"
-  file "Enemies_copy.exe"
-  file "Eshoot.exe"
-  file "Game.exe"
-  file "GeneradorBF2.exe"
-  file "GhostSprites.exe"
-  file "MPea_mov.exe"
-  file "PacFight.exe"
-  file "PacSprites.exe"
-  file "PacSpritesLR.exe"
-  file "PacSpritesUD.exe"
-  file "Pantalla.exe"
-  file "Pea.exe"
-  file "Pea_mov.exe"
-  file "Pea_mov2.exe"
-  file "Pea_mov3.exe"
-  file "PEB.exe"
-  file "Peb_mov.exe"
-  file "Peb_mov3.exe"
-  file "PEC.exe"
-  file "Pec_mov.exe"
-  file "Pec_mov3.exe"
-  file "Pinky.exe"
-  file "Player.exe"
-  file "Player_In.exe"
-  file "Shootp.exe"
-  file "Shootpvic.exe"
-  file "Tabletop.exe"
-}
-folder "docs" {
-  file "Diagrama.PUML"
-  file "estructura_proyecto.puml"
-}
-folder "include" {
-  file "Animacion.hpp"
-  file "Barrier.hpp"
-  file "Enemy.hpp"
-  file "EnemyHealthManager.hpp"
-  file "EnemyManager.hpp"
-  file "EnemyMovementManager.hpp"
-  file "EnemyShooter.hpp"
-  file "Game.hpp"
-  file "Jefe.hpp"
-  file "PlayerHealth.hpp"
-}
-folder "src" {
-  file "Barreras.cpp"
-  file "BossFight.cpp"
-  file "BossSprite.cpp"
-  file "boss_explosion_textures_snippet.cpp"
-  file "Enemies.cpp"
-  file "Enemies_copy.cpp"
-  file "Eshoot.cpp"
-  file "Game.cpp"
-  file "GeneradorBF2.cpp"
-  file "GhostSprites.cpp"
-  file "Jefe.cpp"
-  file "PacFight.cpp"
-  file "PacSpritesLR.cpp"
-  file "PacSpritesUD.cpp"
-  file "Pantalla.cpp"
-  file "Pea.cpp"
-  file "Pea_mov.cpp"
-  file "Pea_mov2.cpp"
-  file "Pea_mov3.cpp"
-  file "Peb.cpp"
-  file "Peb_mov.cpp"
-  file "Pec.cpp"
-  file "Pec_mov.cpp"
-  file "Pinky.cpp"
-  file "Player_In.cpp"
-  file "Shootp.cpp"
-  file "Shootpvic.cpp"
-  file "Tabletop.cpp"
-}
-file "makefile"
-file "README.md"
+class Juego
+class Jugador
+class Enemigo
+class Boss
+class Barrera
+class Disparo
+class Bala
+class Colision
+class Vida
+class Marcador
+class Puntuacion
+class Pantalla
+class Nivel
+class Tiempo
+class CuentaRegresiva
+class Sonido
+class Movimiento
+
+' Relaciones principales (ejemplo de organización, no del código)
+Juego "1" *-- "1" Jugador
+Juego "1" *-- "*" Enemigo
+Juego "1" *-- "1" Pantalla
+Juego *-- Sonido
+Juego *-- Tiempo
+Juego *-- Boss
+Juego *-- Barrera
+Juego *-- Nivel
+Juego *-- Marcador
+Juego *-- Disparo
+
+Jugador "1" o-- "1" Vida
+Jugador *-- Marcador
+Jugador *-- Disparo
+
+Marcador *-- Puntuacion
+
+Vida *-- Jugador
+
+Disparo *-- Colision
+Disparo --|> Bala
+
+Bala *-- Colision
+
+Enemigo
+Enemigo *-- Movimiento
+Enemigo *-- Puntuacion
+Enemigo *-- Disparo
+Boss --|> Enemigo
+
+Barrera *-- Colision
+Barrera *-- Vida
+
+Pantalla *-- Nivel
+Nivel *-- Enemigo
+
+Tiempo *-- CuentaRegresiva
 
 @enduml
