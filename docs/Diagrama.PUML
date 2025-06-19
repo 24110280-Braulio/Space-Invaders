@@ -36,11 +36,10 @@ class Barrier
 class Boss
 class PlayerHealth
 
-class PlayerShipPng as "playerShip.png"
-class EnemyPng as "enemy.png"
-class BossPng as "boss.png"
-class BarrierPng as "barrier.png"
-class BulletPng as "bullet.png"
+class EnemySprite as "enemy.png"
+class BossSprite as "boss.png"
+class BarrierSprite as "barrier.png"
+class BulletSprite as "bullet.png"
 
 ' Relaciones
 Game --> Tabletop
@@ -64,10 +63,10 @@ Tabletop --> PlayerHealth
 PacFight --> EnemyManager
 PacFight --> PlayerHealth
 
-PlayerHealth "1" *-- "1" PlayerShipPng : utiliza
-EnemyManager "1" *-- "*" EnemyPng : controla
-Boss "1" *-- "1" BossPng : utiliza
-Barrier "1" *-- "1" BarrierPng : utiliza
-EnemyShooter "1" *-- "1" BulletPng : utiliza
+Player "1" *-- "1" PlayerHealth : utiliza
+EnemyManager "1" *-- "*" EnemySprite : controla
+Boss "1" *-- "1" BossSprite : utiliza
+Barrier "1" *-- "1" BarrierSprite : utiliza
+EnemyShooter "1" *-- "1" BulletSprite : utiliza
 
 @enduml
