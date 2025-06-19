@@ -41,18 +41,75 @@ class PacFight {
     + VerificarColisiones()
 }
 
-class EnemyManager
-class EnemyMovementManager
-class EnemyHealthManager
-class EnemyShooter
-class Barrier
-class Boss
-class PlayerHealth
+class EnemyManager {
+    + GenerarEnemigo()
+    + AnimarEnemigo()
+}
 
-class EnemySprite as "enemy.png"
-class BossSprite as "boss.png"
-class BarrierSprite as "barrier.png"
-class BulletSprite as "bullet.png"
+class EnemyMovementManager {
+    - velocidadMovimiento: float
+    - ubicacionesEnemigos: vector<Vector2f>
+    + ControlarMovimientoEnLinea()
+    + ControlarMovimientoEnZigZag()
+    + ControlarMovimientoDescendente()
+}
+
+class EnemyHealthManager {
+    - puntosDeVida: int
+    + EliminarSpriteSiSinVida()
+}
+
+class EnemyShooter {
+    + Disparar()
+    + DibujarBalas()
+    + ControlarVelocidadBalas()
+    - eshoot1: "Eshoot(1).png"
+    - eshoot2: "Eshoot(2).png"
+    - eshoot3: "Eshoot(3).png"
+    - eshoot4: "Eshoot(4).png"
+}
+
+class Barrier {
+    - barrierSprite: "Barrera.png"
+    - lowBarrierSprite: "Lowbarrier.png"
+    - puntosDeVida: int
+    + CambiarSpriteSi20HP()
+    + GenerarBarrierInicial()
+}
+
+class Boss {
+    - laser1: "Laser1.png"
+    - laser2: "Laser2.png"
+    - vidaJefe1: "VidaJefe1.png"
+    - vidaJefe2: "VidaJefe2.png"
+    - vidaJefe3: "VidaJefe3.png"
+    - vidaJefe4: "VidaJefe4.png"
+    - vidaJefe5: "VidaJefe5.png"
+    - vidaJefe6: "VidaJefe6.png"
+    - boss1_A: "Boss1_A.png"
+    - boss1_B: "Boss1_B.png"
+    + GenerarSprite()
+    + Atacar()
+    - tiempoCooldown: float
+}
+
+class PlayerHealth {
+    - hpp: int
+    - sprite0HP: "0 HP.png"
+    - sprite20HP: "20 HP.png"
+    - sprite40HP: "40 HP.png"
+    - sprite60HP: "60 HP.png"
+    - sprite80HP: "80 HP.png"
+    - sprite100HP: "100 HP.png"
+    + ActivarInvencibilidad()
+    + ActualizarSpritePorDaño()
+}
+
+class EnemySprite {
+    - peaSpriteA: "PEA.png"
+    - peaSpriteB: "PEB.png"
+    - peaSpriteC: "PEC.png"
+}
 
 ' Relaciones
 Game --> Tabletop
