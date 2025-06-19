@@ -1,43 +1,31 @@
 @startuml SpaceInvaders
 
+' Clases principales
 class Game {
-    - tabletop: Tabletop
-    - pacFight: PacFight
-    - playerHealth: PlayerHealth
-    - enemyManager: EnemyManager
-    - enemyMovementManager: EnemyMovementManager
-    - enemyHealthManager: EnemyHealthManager
-    - enemyShooter: EnemyShooter
-    - barrier: Barrier
-    - boss: Boss
-    + Iniciar()
-    + Actualizar()
-    + Finalizar()
-    + Reiniciar()
+    - Tabletop: Tabletop
+    - PacFight: PacFight
+    - PlayerHealth: PlayerHealth
+    - EnemyManager: EnemyManager
+    - EnemyMovementManager: EnemyMovementManager
+    - EnemyHealthManager: EnemyHealthManager
+    - EnemyShooter: EnemyShooter
+    - Barrier: Barrier
+    - Boss: Boss
 }
 
 class Tabletop {
-    - enemyManager: EnemyManager
-    - enemyMovementManager: EnemyMovementManager
-    - enemyHealthManager: EnemyHealthManager
-    - enemyShooter: EnemyShooter
-    - barrier: Barrier
-    - boss: Boss
-    - playerHealth: PlayerHealth
-    + Dibujar()
-    + Actualizar()
-    + Reiniciar()
-    + VerificarColisiones()
-    + GenerarEnemigos()
+    - EnemyManager: EnemyManager
+    - EnemyMovementManager: EnemyMovementManager
+    - EnemyHealthManager: EnemyHealthManager
+    - EnemyShooter: EnemyShooter
+    - Barrier: Barrier
+    - Boss: Boss
+    - PlayerHealth: PlayerHealth
 }
 
 class PacFight {
-    - enemyManager: EnemyManager
-    - playerHealth: PlayerHealth
-    + IniciarCombate()
-    + Actualizar()
-    + FinalizarCombate()
-    + VerificarEstado()
+    - EnemyManager: EnemyManager
+    - PlayerHealth: PlayerHealth
 }
 
 class EnemyManager
@@ -48,12 +36,13 @@ class Barrier
 class Boss
 class PlayerHealth
 
-class SpacePlayer as "playerShip.png"
+class PlayerShipPng as "playerShip.png"
 class EnemyPng as "enemy.png"
 class BossPng as "boss.png"
 class BarrierPng as "barrier.png"
 class BulletPng as "bullet.png"
 
+' Relaciones
 Game --> Tabletop
 Game --> PacFight
 Game --> PlayerHealth
@@ -75,7 +64,7 @@ Tabletop --> PlayerHealth
 PacFight --> EnemyManager
 PacFight --> PlayerHealth
 
-Player "1" *-- "1" PlayerHealth : utiliza
+PlayerHealth "1" *-- "1" PlayerShipPng : utiliza
 EnemyManager "1" *-- "*" EnemyPng : controla
 Boss "1" *-- "1" BossPng : utiliza
 Barrier "1" *-- "1" BarrierPng : utiliza
