@@ -12,6 +12,8 @@ class Game {
     - barrier: Barrier
     - boss: Boss
     + EjecutarPrincipal()
+    + MostrarMenu()
+    + RepetirMenu()
 }
 
 class Tabletop {
@@ -30,6 +32,7 @@ class Tabletop {
     + VerificarColisiones()
     + ObtenerEntidades()
     + ProcesarEntrada(entrada)
+    + DibujarFondo()
 }
 
 class PacFight {
@@ -39,6 +42,7 @@ class PacFight {
     + Actualizar()
     + ProcesarEntrada(entrada)
     + VerificarColisiones()
+    + DibujarFondo()
 }
 
 class EnemyManager {
@@ -60,13 +64,13 @@ class EnemyHealthManager {
 }
 
 class EnemyShooter {
-    + Disparar()
-    + DibujarBalas()
-    + ControlarVelocidadBalas()
-    - eshoot1: "Eshoot(1).png"
+     - eshoot1: "Eshoot(1).png"
     - eshoot2: "Eshoot(2).png"
     - eshoot3: "Eshoot(3).png"
     - eshoot4: "Eshoot(4).png"
+    + Disparar()
+    + DibujarBalas()
+    + ControlarVelocidadBalas()
 }
 
 class Barrier {
@@ -111,6 +115,11 @@ class EnemySprite {
     - peaSpriteC: "PEC.png"
 }
 
+class Player {
+    + dispararTabletop()
+    + canShootPacfight()
+}
+
 ' Relaciones
 Game --> Tabletop
 Game --> PacFight
@@ -135,8 +144,5 @@ PacFight --> PlayerHealth
 
 Player "1" *-- "1" PlayerHealth : utiliza
 EnemyManager "1" *-- "*" EnemySprite : controla
-Boss "1" *-- "1" BossSprite : utiliza
-Barrier "1" *-- "1" BarrierSprite : utiliza
-EnemyShooter "1" *-- "1" BulletSprite : utiliza
 
 @enduml
