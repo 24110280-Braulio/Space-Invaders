@@ -1,30 +1,43 @@
 @startuml SpaceInvaders
 
 class Game {
-    - Tabletop: Tabletop
-    - PacFight: PacFight
-    - PlayerHealth: PlayerHealth
-    - EnemyManager: EnemyManager
-    - EnemyMovementManager: EnemyMovementManager
-    - EnemyHealthManager: EnemyHealthManager
-    - EnemyShooter: EnemyShooter
-    - Barrier: Barrier
-    - Boss: Boss
+    - tabletop: Tabletop
+    - pacFight: PacFight
+    - playerHealth: PlayerHealth
+    - enemyManager: EnemyManager
+    - enemyMovementManager: EnemyMovementManager
+    - enemyHealthManager: EnemyHealthManager
+    - enemyShooter: EnemyShooter
+    - barrier: Barrier
+    - boss: Boss
+    + Iniciar()
+    + Actualizar()
+    + Finalizar()
+    + Reiniciar()
 }
 
 class Tabletop {
-    - EnemyManager: EnemyManager
-    - EnemyMovementManager: EnemyMovementManager
-    - EnemyHealthManager: EnemyHealthManager
-    - EnemyShooter: EnemyShooter
-    - Barrier: Barrier
-    - Boss: Boss
-    - PlayerHealth: PlayerHealth
+    - enemyManager: EnemyManager
+    - enemyMovementManager: EnemyMovementManager
+    - enemyHealthManager: EnemyHealthManager
+    - enemyShooter: EnemyShooter
+    - barrier: Barrier
+    - boss: Boss
+    - playerHealth: PlayerHealth
+    + Dibujar()
+    + Actualizar()
+    + Reiniciar()
+    + VerificarColisiones()
+    + GenerarEnemigos()
 }
 
 class PacFight {
-    - EnemyManager: EnemyManager
-    - PlayerHealth: PlayerHealth
+    - enemyManager: EnemyManager
+    - playerHealth: PlayerHealth
+    + IniciarCombate()
+    + Actualizar()
+    + FinalizarCombate()
+    + VerificarEstado()
 }
 
 class EnemyManager
@@ -35,7 +48,7 @@ class Barrier
 class Boss
 class PlayerHealth
 
-class PlayerShipPng as "playerShip.png"
+class SpacePlayer as "playerShip.png"
 class EnemyPng as "enemy.png"
 class BossPng as "boss.png"
 class BarrierPng as "barrier.png"
@@ -62,7 +75,7 @@ Tabletop --> PlayerHealth
 PacFight --> EnemyManager
 PacFight --> PlayerHealth
 
-PlayerHealth "1" *-- "1" PlayerShipPng : utiliza
+Player "1" *-- "1" PlayerHealth : utiliza
 EnemyManager "1" *-- "*" EnemyPng : controla
 Boss "1" *-- "1" BossPng : utiliza
 Barrier "1" *-- "1" BarrierPng : utiliza
