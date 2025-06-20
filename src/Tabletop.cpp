@@ -3,13 +3,13 @@
 #include <algorithm>
 #include <array>
 #include <functional> // <-- Added for std::function
-#include "../include/EnemyMovementManager.hpp"
-#include "../include/EnemyHealthManager.hpp"
-#include "../include/Enemy.hpp"
-#include "../include/Barrier.hpp"
-#include "../include/PlayerHealth.hpp"
-#include "../include/EnemyShooter.hpp"
-#include "../include/Jefe.hpp" // <-- Added include for Jefe
+#include <EnemyMovementManager.hpp>
+#include <EnemyHealthManager.hpp>
+#include <Enemy.hpp>
+#include <Barrier.hpp>
+#include <PlayerHealth.hpp>
+#include <EnemyShooter.hpp>
+#include <Jefe.hpp> // <-- Added include for Jefe
 #include <iostream> // <-- Added for debug output
 
 // --- Forward declarations for functions used in main ---

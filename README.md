@@ -45,9 +45,13 @@ Space Invaders es una recreación del clásico videojuego arcade, desarrollada c
    ```
    make runGame
    ```
+   ![MRG](assets/images/README%20PICTURES/Readme%20(1).png)
 2. Al ejecutar el comando, se desplegará un menú en la terminal donde podrás elegir un nivel para jugar.
+   ![MRG](assets/images/README%20PICTURES/Readme%20(2).png)
 3. El nivel "Space Invaders" corresponde al nivel diseñado en `Tabletop.cpp`.
+   ![MRG](assets/images/README%20PICTURES/Readme%20(3).png)
 4. El nivel "PacFight" corresponde al archivo `PacFight.cpp`.
+   ![MRG](assets/images/README%20PICTURES/Readme%20(4).png)
 
 Asegúrese de tener instalado MinGW y SFML en su sistema.
 
