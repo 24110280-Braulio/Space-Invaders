@@ -222,11 +222,11 @@ Tabletop *-- "4" Barrier
 
 PacFight *-- "1" Player
 
-Player *-- PlayerHealth : utiliza
+Player *-- PlayerHealth
 
 Enemy *-- "*" Animacion
-Enemy *-- EnemyHealthManager : utiliza
-Enemy *-- EnemyMovementManager : utiliza
+Enemy *-- EnemyHealthManager
+Enemy *-- EnemyMovementManager
 Enemy *-- EnemyShooter
 Enemy *-- "*" EnemyManager
 
